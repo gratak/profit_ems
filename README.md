@@ -121,6 +121,8 @@ Błędy i propozycje zgłaszaj w zakładce [Issues](https://github.com/gratak/pr
 
 [PolyForm Noncommercial 1.0.0](LICENSE). Pierwotna integracja ProfitEMS jest na licencji MIT, zobacz [LICENSE-MIT-PROFITEMS](LICENSE-MIT-PROFITEMS).
 
+Nazwa i logo ProfitEMS należą do PROFITEMS Sp. z o.o.
+
 ## In English
 
 Unofficial, extended ProfitEMS integration for Home Assistant, read-only. It adds a dashboard card with three themes (Diorama, Aurora, Foundation) that follow the weather, energy counters for the Energy dashboard, value at RCE prices, a plan calendar, a cheapest-window service and blueprints. License: PolyForm Noncommercial 1.0.0; the original ProfitEMS integration is MIT-licensed, see LICENSE-MIT-PROFITEMS.
