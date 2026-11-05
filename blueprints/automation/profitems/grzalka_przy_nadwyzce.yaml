@@ -1,0 +1,92 @@
+blueprint:
+  name: ProfitEMS, urządzenie przy pełnym magazynie i nadwyżce
+  description: >
+    Włącza urządzenie (np. grzałkę), gdy magazyn jest pełny, a panele dają więcej,
+    niż zużywa dom. Wyłącza je, gdy nadwyżka zniknie. Moc urządzenia dobierz do swojej
+    instalacji; za działanie automatyzacji odpowiada użytkownik.
+  domain: automation
+  source_url: https://github.com/gratak/profit_ems/blob/main/blueprints/automation/profitems/grzalka_przy_nadwyzce.yaml
+  input:
+    battery_full:
+      name: Magazyn pełny
+      selector:
+        entity:
+          filter:
+            - integration: profitems
+              domain: binary_sensor
+    surplus:
+      name: Nadwyżka z paneli (W)
+      selector:
+        entity:
+          filter:
+            - integration: profitems
+              domain: sensor
+              device_class: power
+    device:
+      name: Urządzenie
+      selector:
+        entity:
+          filter:
+            - domain: [switch, input_boolean, light]
+    min_surplus:
+      name: Minimalna nadwyżka
+      description: Ustaw nieco powyżej mocy urządzenia.
+      default: 2000
+      selector:
+        number:
+          min: 100
+          max: 20000
+          step: 100
+          unit_of_measurement: W
+    delay:
+      name: Jak długo warunek musi trwać
+      default: { minutes: 10 }
+      selector:
+        duration:
+
+mode: restart
+
+triggers:
+  - trigger: state
+    entity_id: !input battery_full
+    to: "on"
+    for: !input delay
+    id: start
+  - trigger: numeric_state
+    entity_id: !input surplus
+    above: !input min_surplus
+    for: !input delay
+    id: start
+  - trigger: numeric_state
+    entity_id: !input surplus
+    below: 100
+    for: { minutes: 5 }
+    id: stop
+  - trigger: state
+    entity_id: !input battery_full
+    to: "off"
+    for: { minutes: 5 }
+    id: stop
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: start
+          - condition: state
+            entity_id: !input battery_full
+            state: "on"
+          - condition: numeric_state
+            entity_id: !input surplus
+            above: !input min_surplus
+        sequence:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: !input device
+      - conditions:
+          - condition: trigger
+            id: stop
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input device

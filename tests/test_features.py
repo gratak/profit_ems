@@ -281,3 +281,49 @@ async def test_briefly_offline_gateway_raises_no_issue(hass, aioclient_mock, fre
     freezer.move_to(READING + timedelta(minutes=20))
     entry = await _setup(hass, aioclient_mock, _body(polaczenie__stan="offline"))
     assert not ir.async_get(hass).async_get_issue(DOMAIN, f"gateway_offline_{entry.entry_id}")
+
+
+async def test_plan_keeps_earlier_blocks_of_the_day(hass, aioclient_mock, freezer):
+    freezer.move_to(READING + timedelta(seconds=30))
+    body = copy.deepcopy(INSTALLATION)
+    body["plan"] = [
+        {"od": "13:00", "do": "17:00", "tryb": "samokonsumpcja"},
+        {"od": "17:00", "do": "24:00", "tryb": "sprzedaz"},
+    ]
+    entry = await _setup(hass, aioclient_mock, body)
+
+    later = copy.deepcopy(body)
+    later["polaczenie"]["ostatniOdczyt"] = (READING + timedelta(hours=5)).isoformat()
+    later["plan"] = [{"od": "18:10", "do": "24:00", "tryb": "rezerwa"}]
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(API_URL, json=later)
+    freezer.move_to(READING + timedelta(hours=5, seconds=30))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.plan_today == [
+        {"od": "13:00", "do": "17:00", "tryb": "samokonsumpcja"},
+        {"od": "17:00", "do": "18:10", "tryb": "sprzedaz"},
+        {"od": "18:10", "do": "24:00", "tryb": "rezerwa"},
+    ]
+    assert _state(hass, "mode").attributes["plan_today"][1]["do"] == "18:10"
+    assert _state(hass, "mode").attributes["plan"] == later["plan"]
+
+
+async def test_card_is_served_and_loaded_on_dashboards(hass):
+    from unittest.mock import AsyncMock, MagicMock  # noqa: PLC0415
+
+    from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL  # noqa: PLC0415
+
+    from custom_components.profitems import CARD_FILE, _async_register_card  # noqa: PLC0415
+
+    hass.http = MagicMock(async_register_static_paths=AsyncMock())
+    hass.config.components.add("frontend")
+    hass.data[DATA_EXTRA_MODULE_URL] = MagicMock()
+    await _async_register_card(hass)
+    (config,) = hass.http.async_register_static_paths.call_args.args[0]
+    assert config.url_path == "/profitems/profitems-card.js"
+    assert config.path == str(CARD_FILE)
+    assert CARD_FILE.is_file()
+    url = hass.data[DATA_EXTRA_MODULE_URL].add.call_args.args[0]
+    assert url.startswith("/profitems/profitems-card.js?v=")

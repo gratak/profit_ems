@@ -1,0 +1,54 @@
+blueprint:
+  name: ProfitEMS, uruchom urządzenie w najtańszym czasie
+  description: >
+    Codziennie o wybranej godzinie pyta integrację ProfitEMS, kiedy urządzenie
+    pracujące przez podany czas zużyje najtańszą energię według cen RCE, i włącza je
+    o tej porze na ten czas. Nadaje się do zmywarki z opóźnionym startem, pompy ciepła
+    z zasobnikiem czy ładowarki auta.
+  domain: automation
+  source_url: https://github.com/gratak/profit_ems/blob/main/blueprints/automation/profitems/najtanszy_czas.yaml
+  input:
+    device:
+      name: Urządzenie
+      selector:
+        entity:
+          filter:
+            - domain: [switch, input_boolean]
+    duration:
+      name: Czas pracy
+      default: { hours: 2 }
+      selector:
+        duration:
+    plan_at:
+      name: Kiedy zaplanować
+      description: >
+        O tej godzinie automatyzacja szuka okna od teraz do końca znanych cen.
+        Ceny na jutro pojawiają się po południu, więc 15:00 lub później obejmuje noc.
+      default: "15:30:00"
+      selector:
+        time:
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input plan_at
+
+actions:
+  - action: profitems.cheapest_window
+    data:
+      duration: !input duration
+    response_variable: window
+  - condition: template
+    value_template: "{{ window.found }}"
+  - wait_template: "{{ now() >= as_datetime(window.start) }}"
+    timeout: { hours: 36 }
+    continue_on_timeout: false
+  - action: homeassistant.turn_on
+    target:
+      entity_id: !input device
+  - wait_template: "{{ now() >= as_datetime(window.end) }}"
+    timeout: { hours: 25 }
+  - action: homeassistant.turn_off
+    target:
+      entity_id: !input device

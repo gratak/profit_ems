@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karta ProfitEMS, demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap">
+<style>
+  body { margin: 0; background: #eef1f4; color: #1d2630; font: 14px system-ui, sans-serif; }
+  main { max-width: 1320px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 6px; font-size: 24px; }
+  p { margin: 0 0 16px; color: #5d6b79; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .bar button { border: 1px solid #d5dce3; background: #fff; padding: 7px 13px; border-radius: 999px; cursor: pointer; font: inherit; }
+  .bar button[aria-pressed="true"] { background: #1d2630; color: #fff; border-color: #1d2630; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 24px; align-items: start; }
+  .cards h2 { margin: 0 0 8px; font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Karta ProfitEMS</h1>
+  <p>Demo na przykładowych danych. Pora dnia, pogoda i ceny zmieniają się ze scenariuszem.</p>
+  <div class="bar" id="bar"></div>
+  <div class="cards">
+    <div><h2>Diorama</h2><profitems-card id="diorama"></profitems-card></div>
+    <div><h2>Aurora</h2><profitems-card id="aurora"></profitems-card></div>
+    <div><h2>Foundation</h2><profitems-card id="foundation"></profitems-card></div>
+  </div>
+</main>
+<script src="mock-hass.js"></script>
+<script src="../custom_components/profitems/frontend/profitems-card.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  let current = params.get("s") || "poludnie";
+  const cards = ["diorama", "aurora", "foundation"].map((theme) => {
+    const el = document.getElementById(theme);
+    el.setConfig({ theme });
+    return el;
+  });
+  function show(key) {
+    current = key;
+    const hass = demoHass(key, params.get("lang") || "pl");
+    // The card reads the time from the clock; the demo fixes it to the scenario's moment.
+    Date.now = () => hass.demoNow.getTime();
+    cards.forEach((c) => { c._sig = null; c.hass = hass; });
+    document.querySelectorAll("#bar button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === key)));
+  }
+  const NativeDate = Date;
+  window.Date = class extends NativeDate {
+    constructor(...a) { super(...(a.length ? a : [window.Date.now()])); }
+  };
+  Object.getOwnPropertyNames(NativeDate).forEach((k) => { if (!(k in window.Date)) window.Date[k] = NativeDate[k]; });
+  window.Date.UTC = NativeDate.UTC; window.Date.parse = NativeDate.parse;
+  document.getElementById("bar").innerHTML = Object.entries(DEMO_SCENARIOS).map(([k, s]) => `<button data-s="${k}">${s.label}</button>`).join("");
+  document.getElementById("bar").addEventListener("click", (e) => { if (e.target.dataset.s) show(e.target.dataset.s); });
+  show(current);
+</script>
+</body>
+</html>

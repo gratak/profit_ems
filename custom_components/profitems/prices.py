@@ -134,11 +134,11 @@ def cheapest_window(
     return best
 
 
-def plan_blocks(data: dict[str, Any], now: datetime) -> list[tuple[datetime, datetime, str]]:
-    """Return the plan for the rest of the market day as (start, end, mode)."""
+def plan_blocks(plan: list[Any] | None, now: datetime) -> list[tuple[datetime, datetime, str]]:
+    """Return the plan of the market day as (start, end, mode)."""
     today = market_today(now)
     blocks = []
-    for item in data.get("plan") or []:
+    for item in plan or []:
         try:
             start = _clock(today, item["od"])
             end = _clock(today, item["do"])

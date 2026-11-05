@@ -22,6 +22,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .energy import EnergyCounters
+from .prices import market_today
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +62,9 @@ class ProfitEmsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.client = client
         self.energy = EnergyCounters(hass, config_entry.entry_id)
+        # The API sends the plan for the rest of the day only; blocks that have passed are kept here.
+        self.plan_today: list[dict[str, str]] = []
+        self._plan_day: str | None = None
 
     async def _async_setup(self) -> None:
         await self.energy.async_load()
@@ -80,8 +84,32 @@ class ProfitEmsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         last_reading = dt_util.parse_datetime(reading) if reading else None
         self.update_interval = next_poll_delay(last_reading, now)
         self.energy.update(data)
+        self._merge_plan(data.get("plan"), now)
         self._track_offline(data, connection.get("stan"), last_reading, now)
         return data
+
+    def _merge_plan(self, plan: Any, now: datetime) -> None:
+        """Keep today's earlier plan blocks in front of the plan the API sends now."""
+        day = market_today(now).isoformat()
+        if day != self._plan_day:
+            self._plan_day = day
+            self.plan_today = []
+        current = [
+            {"od": item["od"], "do": item["do"], "tryb": item["tryb"]}
+            for item in plan or []
+            if isinstance(item, dict)
+            and all(isinstance(item.get(key), str) for key in ("od", "do", "tryb"))
+        ]
+        if not current:
+            return
+        # "HH:MM" strings with leading zeros sort in time order, "24:00" last.
+        first = min(item["od"] for item in current)
+        kept = []
+        for item in self.plan_today:
+            if item["od"] >= first:
+                continue
+            kept.append({**item, "do": min(item["do"], first)})
+        self.plan_today = kept + sorted(current, key=lambda item: item["od"])
 
     def _track_offline(
         self, data: dict[str, Any], state: str | None, last_reading: datetime | None, now: datetime

@@ -51,7 +51,7 @@ async def async_setup_entry(
 
 
 class ProfitEmsPlanCalendar(ProfitEmsEntity, CalendarEntity):
-    """One event per block of the plan; automations can trigger on an event's start."""
+    """One event per block of today's plan; automations can trigger on an event's start."""
 
     def __init__(self, coordinator: ProfitEmsCoordinator) -> None:
         super().__init__(coordinator, EntityDescription(key="plan", translation_key="plan"))
@@ -67,7 +67,7 @@ class ProfitEmsPlanCalendar(ProfitEmsEntity, CalendarEntity):
                 description=mode,
                 uid=f"{self.unique_id}_{start.isoformat()}",
             )
-            for start, end, mode in plan_blocks(self.coordinator.data, dt_util.utcnow())
+            for start, end, mode in plan_blocks(self.coordinator.plan_today, dt_util.utcnow())
         ]
 
     @property

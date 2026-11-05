@@ -42,6 +42,8 @@ class ProfitEmsSensorDescription(SensorEntityDescription):
 
     value_fn: Callable[[Data], Any]
     attributes_fn: Callable[[Data], dict[str, Any]] | None = None
+    # Attributes kept by the coordinator rather than read from the last response.
+    coordinator_attributes_fn: Callable[[Any], dict[str, Any]] | None = None
 
 
 def _power(key: str, field: str, part: str = "teraz") -> ProfitEmsSensorDescription:
@@ -78,6 +80,7 @@ SENSORS = (
             "since": section(data, "system").get("trybOd"),
             "plan": data.get("plan", []),
         },
+        coordinator_attributes_fn=lambda coordinator: {"plan_today": coordinator.plan_today},
     ),
     ProfitEmsSensorDescription(
         key="rce_price",
@@ -174,7 +177,7 @@ class ProfitEmsSensor(ProfitEmsEntity, SensorEntity):
 
     entity_description: ProfitEmsSensorDescription
     # Hourly prices and the plan change every day; keeping them out of the database saves space.
-    _unrecorded_attributes = frozenset({"today", "tomorrow", "prices", "plan"})
+    _unrecorded_attributes = frozenset({"today", "tomorrow", "prices", "plan", "plan_today"})
 
     @property
     def native_value(self) -> Any:
@@ -184,9 +187,13 @@ class ProfitEmsSensor(ProfitEmsEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional data, such as the plan or hourly prices."""
-        if (attributes_fn := self.entity_description.attributes_fn) is None:
+        description = self.entity_description
+        if description.attributes_fn is None:
             return None
-        return attributes_fn(self.coordinator.data)
+        attributes = description.attributes_fn(self.coordinator.data)
+        if description.coordinator_attributes_fn is not None:
+            attributes |= description.coordinator_attributes_fn(self.coordinator)
+        return attributes
 
 
 class ProfitEmsCounterSensor(ProfitEmsEntity, SensorEntity):
