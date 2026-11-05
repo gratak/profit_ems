@@ -4,7 +4,7 @@ Propozycja rozwoju integracji [ProfitEMS](https://profitems.pl): co jeszcze moż
 
 Integracja tylko odczytuje dane. Nie steruje falownikiem ani magazynem energii: o ich pracy decyduje system ProfitEMS. Projekt nie jest powiązany z PROFITEMS Sp. z o.o.
 
-**[Zobacz kartę w przeglądarce](demo/index.html)**: demo na przykładowych danych, bez instalacji. Otwórz plik `demo/index.html` z repozytorium.
+**[Zobacz kartę w przeglądarce](https://gratak.github.io/profit_ems/demo/)**: demo na przykładowych danych, bez instalacji.
 
 ## Co dodaje względem oryginału
 

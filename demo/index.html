@@ -2,59 +2,76 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Karta ProfitEMS, demo</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Karta ProfitEMS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
-  body { margin: 0; background: #eef1f4; color: #1d2630; font: 14px system-ui, sans-serif; }
-  main { max-width: 1320px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { margin: 0 0 6px; font-size: 24px; }
-  p { margin: 0 0 16px; color: #5d6b79; }
-  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  .bar button { border: 1px solid #d5dce3; background: #fff; padding: 7px 13px; border-radius: 999px; cursor: pointer; font: inherit; }
-  .bar button[aria-pressed="true"] { background: #1d2630; color: #fff; border-color: #1d2630; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 24px; align-items: start; }
-  .cards h2 { margin: 0 0 8px; font-size: 15px; }
+/* Layout: neutral workbench page; the three cards are self-contained single-look worlds. */
+:root { --bg: #eef1f4; --fg: #1d2630; --muted: #5d6b79; --line: #d5dce3; --chip: #ffffff; --chip-on: #1d2630; --chip-on-fg: #ffffff;
+  --page-font: "Instrument Sans", "Segoe UI", Roboto, system-ui, sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #13171c; --fg: #e4e9ee; --muted: #93a0ad; --line: #2a323b; --chip: #1c2229; --chip-on: #e4e9ee; --chip-on-fg: #13171c; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #13171c; --fg: #e4e9ee; --muted: #93a0ad; --line: #2a323b; --chip: #1c2229; --chip-on: #e4e9ee; --chip-on-fg: #13171c; color-scheme: dark }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--page-font); }
+.page { max-width: 1320px; margin: 0 auto; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.intro { display: grid; gap: 8px; max-width: 72ch; }
+.intro h1 { margin: 0; font-size: 26px; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); line-height: 1.5; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 20px 0 24px; }
+.controls > span { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 4px; }
+.scn { border: 1px solid var(--line); background: var(--chip); color: var(--fg); padding: 7px 13px; border-radius: 999px; font: 500 13px var(--page-font); cursor: pointer; }
+.scn[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-fg); border-color: var(--chip-on); }
+.scn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 24px; align-items: start; }
+.slot { display: grid; gap: 10px; min-width: 0; }
+.slot header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slot header b { font-size: 15px; } .slot header small { color: var(--muted); font-size: 12px; text-align: right; }
+.notes { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px 32px; }
+.notes h2 { margin: 0 0 6px; font-size: 15px; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.55; font-size: 14px; }
 </style>
 </head>
 <body>
-<main>
-  <h1>Karta ProfitEMS</h1>
-  <p>Demo na przykładowych danych. Pora dnia, pogoda i ceny zmieniają się ze scenariuszem.</p>
-  <div class="bar" id="bar"></div>
-  <div class="cards">
-    <div><h2>Diorama</h2><profitems-card id="diorama"></profitems-card></div>
-    <div><h2>Aurora</h2><profitems-card id="aurora"></profitems-card></div>
-    <div><h2>Foundation</h2><profitems-card id="foundation"></profitems-card></div>
+<div class="page">
+  <div class="intro">
+    <h1>Karta ProfitEMS do Home Assistant</h1>
+    <p>Prawdziwa karta z integracji, uruchomiona na przykładowych danych. Pora dnia, pogoda i ceny zmieniają się ze scenariuszem. Na mapie cen najedź na słupek albo go dotknij.</p>
   </div>
-</main>
+  <div class="controls" role="group" aria-label="Scenariusz"><span>Scenariusz</span><div id="bar" style="display:contents"></div></div>
+  <div class="cards">
+    <div class="slot"><header><b>Diorama</b><small>scena domu, pora dnia i pogoda</small></header><profitems-card id="diorama"></profitems-card></div>
+    <div class="slot"><header><b>Aurora</b><small>neonowe pierścienie</small></header><profitems-card id="aurora"></profitems-card></div>
+    <div class="slot"><header><b>Foundation</b><small>złote orbity wokół EMS</small></header><profitems-card id="foundation"></profitems-card></div>
+  </div>
+  <div class="notes">
+    <div><h2>Wszystko z obecnego API</h2><ul>
+      <li>Przepływ, tryb, plan, ceny RCE i sygnały pochodzą z danych, które API już zwraca.</li>
+      <li>Liczniki kWh i bilans wg RCE integracja wylicza sama z odczytów co 5 minut.</li>
+      <li>Plan całej doby: integracja zapamiętuje bloki, które już minęły.</li></ul></div>
+    <div><h2>Poza kartą</h2><ul>
+      <li>Panel Energia, kalendarz z planem, usługa „najtańszy czas”, blueprinty automatyzacji.</li>
+      <li>Ceny godzinowe i 15-minutowe, z obsługą zmiany czasu.</li>
+      <li>Kod: <a href="https://github.com/gratak/profit_ems/tree/rozwoj" style="color:inherit">github.com/gratak/profit_ems</a>.</li></ul></div>
+  </div>
+</div>
 <script src="mock-hass.js"></script>
 <script src="../custom_components/profitems/frontend/profitems-card.js"></script>
 <script>
-  const params = new URLSearchParams(location.search);
-  let current = params.get("s") || "poludnie";
-  const cards = ["diorama", "aurora", "foundation"].map((theme) => {
-    const el = document.getElementById(theme);
-    el.setConfig({ theme });
-    return el;
-  });
-  function show(key) {
-    current = key;
-    const hass = demoHass(key, params.get("lang") || "pl");
-    // The card reads the time from the clock; the demo fixes it to the scenario's moment.
-    Date.now = () => hass.demoNow.getTime();
-    cards.forEach((c) => { c._sig = null; c.hass = hass; });
-    document.querySelectorAll("#bar button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === key)));
-  }
   const NativeDate = Date;
-  window.Date = class extends NativeDate {
-    constructor(...a) { super(...(a.length ? a : [window.Date.now()])); }
-  };
-  Object.getOwnPropertyNames(NativeDate).forEach((k) => { if (!(k in window.Date)) window.Date[k] = NativeDate[k]; });
+  let fixedNow = NativeDate.now();
+  window.Date = class extends NativeDate { constructor(...a) { super(...(a.length ? a : [fixedNow])); } static now() { return fixedNow; } };
   window.Date.UTC = NativeDate.UTC; window.Date.parse = NativeDate.parse;
-  document.getElementById("bar").innerHTML = Object.entries(DEMO_SCENARIOS).map(([k, s]) => `<button data-s="${k}">${s.label}</button>`).join("");
+  const cards = ["diorama", "aurora", "foundation"].map((theme) => { const el = document.getElementById(theme); el.setConfig({ theme }); return el; });
+  function show(key) {
+    const hass = demoHass(key, "pl");
+    fixedNow = hass.demoNow.getTime();
+    cards.forEach((c) => { c._sig = null; c.hass = hass; });
+    document.querySelectorAll(".scn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === key)));
+  }
+  document.getElementById("bar").innerHTML = Object.entries(DEMO_SCENARIOS).map(([k, s]) => `<button class="scn" data-s="${k}">${s.label}</button>`).join("");
   document.getElementById("bar").addEventListener("click", (e) => { if (e.target.dataset.s) show(e.target.dataset.s); });
-  show(current);
+  show("poludnie");
 </script>
 </body>
 </html>
