@@ -1,0 +1,20 @@
+cheapest_window:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: profitems
+    duration:
+      required: true
+      example: "02:00:00"
+      selector:
+        duration:
+    day:
+      default: any
+      selector:
+        select:
+          translation_key: day
+          options:
+            - any
+            - today
+            - tomorrow

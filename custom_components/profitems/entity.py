@@ -1,11 +1,19 @@
 """Base entity for the ProfitEMS integration."""
 
+from typing import Any
+
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import ProfitEmsCoordinator
+
+
+def section(data: dict[str, Any], name: str) -> dict[str, Any]:
+    """Return a part of the API response, or an empty one when the server sent none."""
+    value = data.get(name)
+    return value if isinstance(value, dict) else {}
 
 
 class ProfitEmsEntity(CoordinatorEntity[ProfitEmsCoordinator]):

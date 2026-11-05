@@ -3,13 +3,21 @@
     "step": {
       "user": {
         "title": "Connect ProfitEMS",
-        "data": { "api_key": "Access key" },
-        "data_description": { "api_key": "Create the key in the ProfitEMS app: Account, My installation, Home Assistant access." }
+        "data": {
+          "api_key": "Access key"
+        },
+        "data_description": {
+          "api_key": "Create the key in the ProfitEMS app: Account, My installation, Home Assistant access."
+        }
       },
       "reauth_confirm": {
         "title": "Enter a new access key",
-        "data": { "api_key": "Access key" },
-        "data_description": { "api_key": "Create the key in the ProfitEMS app: Account, My installation, Home Assistant access." }
+        "data": {
+          "api_key": "Access key"
+        },
+        "data_description": {
+          "api_key": "Create the key in the ProfitEMS app: Account, My installation, Home Assistant access."
+        }
       }
     },
     "error": {
@@ -25,11 +33,21 @@
   },
   "entity": {
     "sensor": {
-      "pv_power": { "name": "PV production" },
-      "home_power": { "name": "Home consumption" },
-      "grid_power": { "name": "Grid power" },
-      "battery_power": { "name": "Battery power" },
-      "pv_surplus": { "name": "PV surplus" },
+      "pv_power": {
+        "name": "PV production"
+      },
+      "home_power": {
+        "name": "Home consumption"
+      },
+      "grid_power": {
+        "name": "Grid power"
+      },
+      "battery_power": {
+        "name": "Battery power"
+      },
+      "pv_surplus": {
+        "name": "PV surplus"
+      },
       "mode": {
         "name": "Operating mode",
         "state": {
@@ -44,8 +62,12 @@
           "obserwacja": "Observation"
         }
       },
-      "rce_price": { "name": "RCE price" },
-      "cheapest_hour": { "name": "Cheapest hour today" },
+      "rce_price": {
+        "name": "RCE price"
+      },
+      "cheapest_hour": {
+        "name": "Cheapest hour today"
+      },
       "connection": {
         "name": "Connection",
         "state": {
@@ -54,14 +76,104 @@
           "offline": "Offline"
         }
       },
-      "last_reading": { "name": "Last reading" }
+      "last_reading": {
+        "name": "Last reading"
+      },
+      "battery_level": {
+        "name": "Battery level"
+      },
+      "cheapest_slot_start": {
+        "name": "Cheapest hour today, start"
+      },
+      "pv_energy": {
+        "name": "Solar production energy"
+      },
+      "home_energy": {
+        "name": "Home consumption energy"
+      },
+      "grid_import_energy": {
+        "name": "Grid import energy"
+      },
+      "grid_export_energy": {
+        "name": "Grid export energy"
+      },
+      "battery_charge_energy": {
+        "name": "Battery charge energy"
+      },
+      "battery_discharge_energy": {
+        "name": "Battery discharge energy"
+      },
+      "grid_export_value": {
+        "name": "Grid export value (RCE)"
+      },
+      "grid_import_value": {
+        "name": "Grid import value (RCE)"
+      }
     },
     "binary_sensor": {
-      "pv_surplus_active": { "name": "PV surplus available" },
-      "battery_full": { "name": "Battery full" },
-      "cheapest_hour_now": { "name": "Cheapest hour now" },
-      "control_active": { "name": "Control active" },
-      "island_mode": { "name": "Island mode" }
+      "pv_surplus_active": {
+        "name": "PV surplus available"
+      },
+      "battery_full": {
+        "name": "Battery full"
+      },
+      "cheapest_hour_now": {
+        "name": "Cheapest hour now"
+      },
+      "control_active": {
+        "name": "Control active"
+      },
+      "island_mode": {
+        "name": "Island mode"
+      }
+    },
+    "calendar": {
+      "plan": {
+        "name": "Plan"
+      }
+    }
+  },
+  "issues": {
+    "gateway_offline": {
+      "title": "ProfitEMS gateway {serial} is offline",
+      "description": "The EMS Connect gateway {serial} has not sent data for over an hour. Check its power supply and internet connection. Sensors stay unknown until it reconnects; this notice disappears by itself."
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "No loaded ProfitEMS installation matches the request."
+    },
+    "entry_ambiguous": {
+      "message": "Several ProfitEMS installations are set up. Choose one with config_entry_id."
+    }
+  },
+  "services": {
+    "cheapest_window": {
+      "name": "Find the cheapest time",
+      "description": "Finds when a device running for the given time would use the cheapest energy, by the RCE prices. Nothing is switched; use the result in an automation.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Installation",
+          "description": "Needed only when several installations are set up."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How long the device runs."
+        },
+        "day": {
+          "name": "When",
+          "description": "Search from now on, only today, or only tomorrow (tomorrow's prices appear in the afternoon)."
+        }
+      }
+    }
+  },
+  "selector": {
+    "day": {
+      "options": {
+        "any": "From now on",
+        "today": "Today",
+        "tomorrow": "Tomorrow"
+      }
     }
   }
 }

@@ -3,13 +3,21 @@
     "step": {
       "user": {
         "title": "Połącz z ProfitEMS",
-        "data": { "api_key": "Klucz dostępu" },
-        "data_description": { "api_key": "Klucz utworzysz w aplikacji ProfitEMS: Konto, Moja instalacja, Dostęp dla Home Assistant." }
+        "data": {
+          "api_key": "Klucz dostępu"
+        },
+        "data_description": {
+          "api_key": "Klucz utworzysz w aplikacji ProfitEMS: Konto, Moja instalacja, Dostęp dla Home Assistant."
+        }
       },
       "reauth_confirm": {
         "title": "Podaj nowy klucz dostępu",
-        "data": { "api_key": "Klucz dostępu" },
-        "data_description": { "api_key": "Klucz utworzysz w aplikacji ProfitEMS: Konto, Moja instalacja, Dostęp dla Home Assistant." }
+        "data": {
+          "api_key": "Klucz dostępu"
+        },
+        "data_description": {
+          "api_key": "Klucz utworzysz w aplikacji ProfitEMS: Konto, Moja instalacja, Dostęp dla Home Assistant."
+        }
       }
     },
     "error": {
@@ -25,11 +33,21 @@
   },
   "entity": {
     "sensor": {
-      "pv_power": { "name": "Produkcja z paneli" },
-      "home_power": { "name": "Zużycie domu" },
-      "grid_power": { "name": "Moc sieci" },
-      "battery_power": { "name": "Moc magazynu" },
-      "pv_surplus": { "name": "Nadwyżka z paneli" },
+      "pv_power": {
+        "name": "Produkcja z paneli"
+      },
+      "home_power": {
+        "name": "Zużycie domu"
+      },
+      "grid_power": {
+        "name": "Moc sieci"
+      },
+      "battery_power": {
+        "name": "Moc magazynu"
+      },
+      "pv_surplus": {
+        "name": "Nadwyżka z paneli"
+      },
       "mode": {
         "name": "Tryb pracy",
         "state": {
@@ -44,8 +62,12 @@
           "obserwacja": "Obserwacja"
         }
       },
-      "rce_price": { "name": "Cena RCE" },
-      "cheapest_hour": { "name": "Najtańsza godzina dziś" },
+      "rce_price": {
+        "name": "Cena RCE"
+      },
+      "cheapest_hour": {
+        "name": "Najtańsza godzina dziś"
+      },
       "connection": {
         "name": "Połączenie",
         "state": {
@@ -54,14 +76,104 @@
           "offline": "Brak połączenia"
         }
       },
-      "last_reading": { "name": "Ostatni odczyt" }
+      "last_reading": {
+        "name": "Ostatni odczyt"
+      },
+      "battery_level": {
+        "name": "Poziom baterii"
+      },
+      "cheapest_slot_start": {
+        "name": "Najtańsza godzina dziś, początek"
+      },
+      "pv_energy": {
+        "name": "Energia z paneli"
+      },
+      "home_energy": {
+        "name": "Energia zużyta w domu"
+      },
+      "grid_import_energy": {
+        "name": "Energia pobrana z sieci"
+      },
+      "grid_export_energy": {
+        "name": "Energia oddana do sieci"
+      },
+      "battery_charge_energy": {
+        "name": "Energia ładowania magazynu"
+      },
+      "battery_discharge_energy": {
+        "name": "Energia rozładowania magazynu"
+      },
+      "grid_export_value": {
+        "name": "Wartość energii oddanej (RCE)"
+      },
+      "grid_import_value": {
+        "name": "Wartość energii pobranej (RCE)"
+      }
     },
     "binary_sensor": {
-      "pv_surplus_active": { "name": "Dostępna nadwyżka z paneli" },
-      "battery_full": { "name": "Magazyn pełny" },
-      "cheapest_hour_now": { "name": "Trwa najtańsza godzina" },
-      "control_active": { "name": "Sterowanie aktywne" },
-      "island_mode": { "name": "Praca wyspowa" }
+      "pv_surplus_active": {
+        "name": "Dostępna nadwyżka z paneli"
+      },
+      "battery_full": {
+        "name": "Magazyn pełny"
+      },
+      "cheapest_hour_now": {
+        "name": "Trwa najtańsza godzina"
+      },
+      "control_active": {
+        "name": "Sterowanie aktywne"
+      },
+      "island_mode": {
+        "name": "Praca wyspowa"
+      }
+    },
+    "calendar": {
+      "plan": {
+        "name": "Plan"
+      }
+    }
+  },
+  "issues": {
+    "gateway_offline": {
+      "title": "Bramka ProfitEMS {serial} nie ma połączenia",
+      "description": "Bramka EMS Connect {serial} nie przesłała danych od ponad godziny. Sprawdź jej zasilanie i połączenie z internetem. Do tego czasu czujniki mają stan nieznany. Komunikat zniknie sam po odzyskaniu połączenia."
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Nie znaleziono pasującej, działającej instalacji ProfitEMS."
+    },
+    "entry_ambiguous": {
+      "message": "Skonfigurowano kilka instalacji ProfitEMS. Wskaż jedną w polu config_entry_id."
+    }
+  },
+  "services": {
+    "cheapest_window": {
+      "name": "Znajdź najtańszy czas",
+      "description": "Wskazuje, kiedy urządzenie pracujące przez podany czas zużyje najtańszą energię według cen RCE. Niczego nie włącza; wynik wykorzystaj w automatyzacji.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Instalacja",
+          "description": "Potrzebne tylko przy kilku instalacjach."
+        },
+        "duration": {
+          "name": "Czas pracy",
+          "description": "Jak długo pracuje urządzenie."
+        },
+        "day": {
+          "name": "Kiedy",
+          "description": "Szukaj od teraz, tylko dziś albo tylko jutro (ceny na jutro pojawiają się po południu)."
+        }
+      }
+    }
+  },
+  "selector": {
+    "day": {
+      "options": {
+        "any": "Od teraz",
+        "today": "Dziś",
+        "tomorrow": "Jutro"
+      }
     }
   }
 }

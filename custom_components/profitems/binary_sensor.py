@@ -11,7 +11,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import ProfitEmsConfigEntry
-from .entity import ProfitEmsEntity
+from .entity import ProfitEmsEntity, section
+
+PARALLEL_UPDATES = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -78,4 +80,4 @@ class ProfitEmsBinarySensor(ProfitEmsEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return the state; None means the server has no data for it."""
         description = self.entity_description
-        return self.coordinator.data[description.section].get(description.field)
+        return section(self.coordinator.data, description.section).get(description.field)
