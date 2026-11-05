@@ -1,6 +1,6 @@
 # ProfitEMS dla Home Assistant, wersja rozszerzona
 
-Nieoficjalna, rozbudowana wersja integracji [ProfitEMS](https://profitems.pl). Dane instalacji z bramką EMS Connect trafiają do Home Assistant jako czujniki, liczniki energii, kalendarz planu i własna karta do dashboardu.
+Propozycja rozwoju integracji [ProfitEMS](https://profitems.pl): co jeszcze może pokazać Home Assistant i jak może to wyglądać. Dane instalacji z bramką EMS Connect trafiają do Home Assistant jako czujniki, liczniki energii, kalendarz planu i własna karta do dashboardu. Wszystko korzysta z obecnego API ProfitEMS, bez żadnych zmian po stronie serwera.
 
 Integracja tylko odczytuje dane. Nie steruje falownikiem ani magazynem energii: o ich pracy decyduje system ProfitEMS. Projekt nie jest powiązany z PROFITEMS Sp. z o.o.
 
@@ -18,7 +18,7 @@ Integracja tylko odczytuje dane. Nie steruje falownikiem ani magazynem energii: 
 - **Diagnostyka** do zgłoszeń błędów (bez klucza) i **komunikat w Naprawach**, gdy bramka nie ma połączenia ponad godzinę.
 - **Blueprinty** gotowych automatyzacji.
 
-Jeśli używasz oryginalnej integracji, ta wersja ją zastępuje: ma tę samą domenę `profitems`, więc istniejące encje i automatyzacje zostają.
+Ta wersja ma tę samą nazwę wewnętrzną (`profitems`) co oficjalna integracja, więc nie da się zainstalować obu naraz. Do wypróbowania wystarczy jedna z nich.
 
 ## Wymagania
 
