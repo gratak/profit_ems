@@ -288,12 +288,12 @@
     _kw(w) {
       if (w === null) return "–";
       const a = Math.abs(w), loc = this._t === TEXTS.pl ? "pl-PL" : "en-GB";
-      return a < 1000 ? `${Math.round(a)} W` : `${(a / 1000).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kW`;
+      return a < 1000 ? `${Math.round(a)}\u00a0W` : `${(a / 1000).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00a0kW`;
     }
-    _kwParts(w) { const s = this._kw(w); const i = s.lastIndexOf(" "); return [s.slice(0, i), s.slice(i + 1)]; }
+    _kwParts(w) { const s = this._kw(w); const i = s.lastIndexOf("\u00a0"); return [s.slice(0, i), s.slice(i + 1)]; }
     _n(v, d) { return v === null ? "–" : v.toLocaleString(this._t === TEXTS.pl ? "pl-PL" : "en-GB", { minimumFractionDigits: d, maximumFractionDigits: d }); }
-    _zl(p) { return p === null ? "–" : `${this._n(p, 2)} zł/kWh`; }
-    _pln(v, sign) { if (v === null) return "–"; const s = sign ? (v > 0.004 ? "+" : v < -0.004 ? "−" : "") : ""; return `${s}${this._n(Math.abs(v), 2)} zł`; }
+    _zl(p) { return p === null ? "–" : `${this._n(p, 2)}\u00a0zł/kWh`; }
+    _pln(v, sign) { if (v === null) return "–"; const s = sign ? (v > 0.004 ? "+" : v < -0.004 ? "−" : "") : ""; return `${s}${this._n(Math.abs(v), 2)}\u00a0zł`; }
     _mode(m) { return this._t.modes[m] || m || "–"; }
     _since(iso) { return iso ? wParts(new Date(iso)).hm : null; }
 
@@ -711,14 +711,14 @@
     .empty { padding: 24px; display: grid; gap: 6px; }
     .empty span { color: var(--c-muted); font-size: 13px; }
     .body { display: grid; gap: 14px; padding: 16px; position: relative; }
-    .status { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 12.5px; }
+    .status { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; align-items: center; font-size: 12.5px; }
     .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--c-surface);
       border: 1px solid var(--c-border); white-space: nowrap; }
     .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--c-muted)); flex: none; }
     .pill small { color: var(--c-muted); font-size: 11.5px; }
     .pill.mode { font-weight: 700; }
     .pill.island { background: var(--c-warn-soft); border-color: var(--c-warn); color: var(--c-warn); font-weight: 700; }
-    .moment { margin: 0; font-size: 14px; line-height: 1.45; }
+    .moment { margin: 0; font-size: 14px; line-height: 1.45; text-align: center; text-wrap: balance; }
     .moment small { display: block; margin-top: 3px; color: var(--c-muted); font-size: 12px; }
     .tl, .value { padding: 12px 12px 10px; border-radius: var(--c-tr); background: var(--c-surface); border: 1px solid var(--c-border); display: grid; gap: 6px; }
     .tl-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -822,7 +822,6 @@
     .t-foundation .moment { text-align: center; font-style: italic; font-size: 18px; padding: 12px 6px 14px; border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
     .t-foundation .moment::before { content: attr(data-label); display: block; font: 400 10.5px var(--c-head); letter-spacing: .4em; text-transform: uppercase; color: var(--c-accent); margin-bottom: 6px; font-style: normal; }
     .t-foundation .moment small { font-size: 14px; }
-    .t-foundation .status { justify-content: center; }
     .t-foundation .pill { border-radius: 0; font-size: 13.5px; }
     .t-foundation .sig small, .t-foundation .value-row span { font-family: var(--c-head); letter-spacing: .12em; font-size: 9.5px; text-transform: uppercase; }
     .t-foundation .tl-toggle, .t-foundation .tl-toggle button { border-radius: 0; }
