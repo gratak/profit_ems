@@ -19,7 +19,9 @@
       since: "od", reading: "odczyt", minAgo: (m) => (m < 1 ? "przed chwilą" : `${m} min temu`),
       conn: { online: "Połączono", opozniona: "Opóźnione", offline: "Brak połączenia" },
       island: "Praca wyspowa", pricesPlan: "Ceny i plan", rceNet: "RCE netto", today: "Dziś", tomorrow: "Jutro",
-      tomorrowLater: "Ceny na jutro pojawiają się po południu", planTomorrow: "Plan na jutro system ułoży po północy",
+      tomorrowLater: "Ceny na jutro pojawiają się po południu", planTomorrow: "Plan na jutro pojawi się o 22:00",
+      profit: "Zysk dziś", total: "Razem", fromPanels: "Z paneli", fromSystem: "Z systemu ProfitEMS",
+      profitNote: (hm) => `Wyliczenie ProfitEMS, tak jak w aplikacji. Stan na ${hm}.`,
       cheapest: "najtańsza", now: "teraz", surplus: "Nadwyżka z paneli", batteryFull: "Magazyn pełny",
       cheapestHour: "Najtańsza godzina", runningNow: "trwa teraz", none: "brak", yes: "tak", no: "nie",
       value: "Bilans dnia wg RCE", sold: "Sprzedaż", bought: "Zakup", balance: "Bilans",
@@ -59,7 +61,9 @@
       since: "since", reading: "reading", minAgo: (m) => (m < 1 ? "just now" : `${m} min ago`),
       conn: { online: "Connected", opozniona: "Delayed", offline: "Offline" },
       island: "Island mode", pricesPlan: "Prices and plan", rceNet: "RCE net", today: "Today", tomorrow: "Tomorrow",
-      tomorrowLater: "Tomorrow's prices are published in the afternoon", planTomorrow: "The plan for tomorrow is made after midnight",
+      tomorrowLater: "Tomorrow's prices are published in the afternoon", planTomorrow: "The plan for tomorrow appears at 22:00",
+      profit: "Profit today", total: "Total", fromPanels: "From the panels", fromSystem: "From ProfitEMS",
+      profitNote: (hm) => `Calculated by ProfitEMS, as in the app. As of ${hm}.`,
       cheapest: "cheapest", now: "now", surplus: "Solar surplus", batteryFull: "Battery full",
       cheapestHour: "Cheapest hour", runningNow: "now", none: "none", yes: "yes", no: "no",
       value: "Today at RCE prices", sold: "Sold", bought: "Bought", balance: "Balance",
@@ -130,6 +134,22 @@
       modes: { samokonsumpcja: "#ffd23f", ladowanie_z_sieci: "#a28bff", sprzedaz: "#ff4fa3", rezerwa: "#4dffd2", ladowanie_ograniczone: "#c9b45a", zasilanie_domu: "#ff8fc6", blokada_oddawania: "#59607e", wstrzymany: "#3c425c", obserwacja: "#343a52" },
       fonts: "family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500;700",
     },
+    profitems: {
+      name: "ProfitEMS",
+      vars: {
+        bg: "#f8fafc", surface: "#ffffff", border: "#e2e8f0", text: "#0f172a", muted: "#64748b", accent: "#10b981",
+        pv: "#f59e0b", bat: "#10b981", grid: "#3b82f6", home: "#0f172a", track: "#e2e8f0", "tab-on-bg": "#0f172a", "tab-on": "#ffffff",
+        warn: "#d97706", "warn-soft": "#fef3c7", bad: "#dc2626", on: "#047857", "on-bg": "#ecfdf5", "on-border": "#a7f3d0", plain: "#f8fafc",
+        good: "#059669",
+        font: '"Manrope", "Segoe UI", Roboto, system-ui, sans-serif',
+        num: '"Manrope", "Segoe UI", Roboto, system-ui, sans-serif',
+        head: '"Manrope", "Segoe UI", Roboto, system-ui, sans-serif', "head-w": "800", "head-ls": "0",
+        shadow: "0 1px 2px rgba(15,23,42,.06), 0 12px 32px rgba(15,23,42,.08)", frame: "#e2e8f0", r: "20px", tr: "14px",
+      },
+      cheap: "#10b981", dear: "#0f172a", gridline: "#e2e8f0", label: "#94a3b8", past: 0.3, barR: 3,
+      modes: { samokonsumpcja: "#10b981", ladowanie_z_sieci: "#3b82f6", sprzedaz: "#f59e0b", rezerwa: "#0f172a", ladowanie_ograniczone: "#6ee7b7", zasilanie_domu: "#34d399", blokada_oddawania: "#94a3b8", wstrzymany: "#cbd5e1", obserwacja: "#e2e8f0" },
+      fonts: "family=Manrope:wght@500;700;800",
+    },
     foundation: {
       name: "Foundation",
       vars: {
@@ -149,11 +169,14 @@
     },
   };
 
+  // The ProfitEMS mark from the logo, used with PROFITEMS Sp. z o.o.'s permission.
+  const BRAND_MARK = "data:image/png;base64,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";
+
   // Entities of the integration, found by their translation key (battery level by device class).
   const KEYS = [
     "battery_level", "pv_power", "home_power", "grid_power", "battery_power", "pv_surplus", "mode", "rce_price",
     "connection", "last_reading", "grid_export_value", "grid_import_value", "grid_export_energy", "grid_import_energy",
-    "pv_energy", "pv_surplus_active", "battery_full", "cheapest_hour_now", "island_mode",
+    "pv_energy", "value_today", "grid_export_today", "grid_import_today", "pv_surplus_active", "battery_full", "cheapest_hour_now", "island_mode",
   ];
 
   // ------------------------------------------------------------------ helpers
@@ -274,11 +297,19 @@
         nadW: val("pv_surplus"), surplus: on("pv_surplus_active"), full: on("battery_full"), cheapNow: on("cheapest_hour_now"),
         island: on("island_mode"), conn: st("connection")?.state, reading,
         tryb: mode?.state, od: mode?.attributes?.since, plan: mode?.attributes?.plan_today || mode?.attributes?.plan || [],
+        planTomorrow: mode?.attributes?.plan_tomorrow || null,
         price: val("rce_price"), slots: price?.attributes?.prices || [],
         value: {
           sold: today("grid_export_value"), bought: today("grid_import_value"),
-          soldKwh: today("grid_export_energy"), boughtKwh: today("grid_import_energy"), hasValue: Boolean(ids.grid_export_value),
+          // The inverter's counters when the brand reports them, otherwise the integration's estimate.
+          soldKwh: val("grid_export_today") ?? today("grid_export_energy"), boughtKwh: val("grid_import_today") ?? today("grid_import_energy"),
+          hasValue: Boolean(ids.grid_export_value || ids.value_today),
         },
+        profit: ids.value_today && val("value_today") !== null ? {
+          total: val("value_today"), panels: num(st("value_today").attributes?.from_panels),
+          system: num(st("value_today").attributes?.from_system), sale: num(st("value_today").attributes?.export_revenue),
+          at: st("value_today").attributes?.calculated_at,
+        } : null,
         weather: weather && { condition: weather.state, temp: num(weather.attributes?.temperature), unit: weather.attributes?.temperature_unit || "°C" },
         elevation: num(sun?.attributes?.elevation),
       };
@@ -388,7 +419,19 @@
     }
 
     _value(d) {
-      const t = this._t, v = d.value;
+      const t = this._t;
+      if (d.profit) {
+        const p = d.profit;
+        const cell = (label, value, cls = "") => `<div class="${cls}"><span>${label}</span><b class="${value > 0 ? "good" : value < 0 ? "bad" : ""}">${this._pln(value, false)}</b></div>`;
+        return `<section class="value">
+          <h3>${t.profit}</h3>
+          <div class="value-row four">
+            ${cell(t.total, p.total, "bal")}${cell(t.fromPanels, p.panels)}${p.system !== null ? cell(t.fromSystem, p.system) : ""}${cell(t.sold, p.sale)}
+          </div>
+          <p>${t.profitNote(p.at ? wParts(new Date(p.at)).hm : "–")}</p>
+        </section>`;
+      }
+      const v = d.value;
       const bal = v.sold !== null && v.bought !== null ? v.sold - v.bought : null;
       const kwh = (x) => (x === null ? "" : `<small>${this._n(x, 1)} kWh</small>`);
       return `<section class="value">
@@ -478,13 +521,16 @@
       bars += `<text x="${((X(+sm.start) + X(+sm.end)) / 2).toFixed(1)}" y="${Math.min(Y(sm.price), zeroY) - 4}" text-anchor="middle" class="min" fill="${T.cheap}">min</text>`;
 
       let plan = "";
-      if (isToday) {
-        const hm = (s) => { const [a, b] = s.split(":").map(Number); return dayStart + (a * 60 + b) * 60000; };
-        for (const p of d.plan) {
+      const hm = (s) => { const [a, b] = s.split(":").map(Number); return dayStart + (a * 60 + b) * 60000; };
+      const drawPlan = (list) => {
+        for (const p of list) {
           if (!p.od || !p.do) continue;
           const a = X(hm(p.od)), b = X(hm(p.do));
           if (b > a) plan += `<rect x="${a.toFixed(1)}" y="98" width="${Math.max(0.5, b - a - 1).toFixed(1)}" height="11" rx="${Math.min(T.barR, 3)}" fill="${T.modes[p.tryb] || T.vars.muted}"><title>${esc(this._mode(p.tryb))} ${esc(p.od)}–${esc(p.do)}</title></rect>`;
         }
+      };
+      if (isToday) {
+        drawPlan(d.plan);
         if (!d.plan.length) plan += `<text x="${(x0 + x1) / 2}" y="107" text-anchor="middle" class="note">–</text>`;
         const nx = X(now);
         if (nx >= x0 && nx <= x1) {
@@ -492,6 +538,8 @@
           plan += `<line x1="${nx}" x2="${nx}" y1="${top - 8}" y2="113" stroke="var(--c-text)" stroke-width="1.5" stroke-dasharray="3 2"/>`;
           plan += `<text x="${clamp(nx, x0 + 12, x1 - 12)}" y="${top - 10}" text-anchor="middle" class="nowlbl">${wParts(new Date(now)).hm}</text>`;
         }
+      } else if (d.planTomorrow?.length) {
+        drawPlan(d.planTomorrow);
       } else {
         plan += `<text x="${(x0 + x1) / 2}" y="107" text-anchor="middle" class="note">${esc(t.planTomorrow)}</text>`;
       }
@@ -503,13 +551,14 @@
       let hits = "";
       slots.forEach((s, i) => { hits += `<rect class="hit" data-i="${i}" x="${X(+s.start)}" y="0" width="${Math.max(1, X(+s.end) - X(+s.start))}" height="130" fill="transparent"/>`; });
 
-      const atSel = isToday ? d.plan.find((p) => p.od <= wParts(ss.start).hm && wParts(ss.start).hm < p.do) : null;
+      const dayPlan = isToday ? d.plan : d.planTomorrow || [];
+      const atSel = dayPlan.find((p) => p.od <= wParts(ss.start).hm && wParts(ss.start).hm < p.do);
       const detail = `<b>${wParts(ss.start).hm}–${wParts(ss.end).hm === "00:00" ? "24:00" : wParts(ss.end).hm}</b><b>${this._zl(ss.price)}</b>${atSel ? `<span>${esc(this._mode(atSel.tryb))}</span>` : ""}${sel === minI ? `<span>${t.cheapest}</span>` : ""}`;
-      const used = [...new Set(d.plan.map((p) => p.tryb))];
+      const used = [...new Set(dayPlan.map((p) => p.tryb))];
       return `<section class="tl">${head}
         <svg viewBox="0 0 ${W} 130" tabindex="0" role="img" aria-label="${esc(t.pricesPlan)}">${g}${bars}${plan}${ax}${hits}</svg>
         <div class="tl-detail" aria-live="polite">${detail}</div>
-        ${isToday && used.length ? `<div class="legend">${used.map((k) => `<span style="--m:${T.modes[k] || T.vars.muted}">${esc(this._mode(k))}</span>`).join("")}</div>` : ""}
+        ${used.length ? `<div class="legend">${used.map((k) => `<span style="--m:${T.modes[k] || T.vars.muted}">${esc(this._mode(k))}</span>`).join("")}</div>` : ""}
       </section>`;
     }
 
@@ -692,6 +741,52 @@
       const wtext = this._weatherText(d);
       return `<div class="fnd-head"><small>PROFITEMS</small><h2>${esc(U(d.name))}</h2><em>${esc(date)} · ${wParts(new Date()).hm}${wtext ? ` · ${esc(wtext)}` : ""}</em></div>${svg}`;
     }
+
+    // ---------------------------------------------------------- ProfitEMS
+    _hero_profitems(T, d) {
+      const t = this._t, V = T.vars, bat = d.bat ?? 0, siec = d.siec ?? 0, pv = d.pv ?? 0, soc = clamp(d.soc ?? 0, 0, 100);
+      const pl = t === TEXTS.pl;
+      // The battery from the logo: body 112 x 164, cap on top; the charge fills it from the bottom.
+      const bx = 124, by = 66, bw = 112, bh = 164, level = by + bh - (bh * soc) / 100;
+      const flow = (path, w, color, rev) => `<path d="${path}" stroke="${V.track}" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path class="flow${Math.abs(w) > 30 ? " run" : ""}${rev ? " rev" : ""}" style="--t:${durFor(w)}" d="${path}" stroke="${color}" stroke-width="4" stroke-dasharray="1 9" opacity="${Math.abs(w) > 30 ? 1 : 0}"/>`;
+      const node = (cx, cy, color, label, value, sub) => `
+        <circle cx="${cx}" cy="${cy}" r="34" fill="#ffffff" stroke="${color}" stroke-width="2.5"/>
+        <text x="${cx}" y="${cy - 9}" text-anchor="middle" class="pl">${label}</text>
+        <text x="${cx}" y="${cy + 9}" text-anchor="middle" class="pv">${value}</text>
+        ${sub ? `<text x="${cx}" y="${cy + 52}" text-anchor="middle" class="ps" fill="${color}">${sub}</text>` : ""}`;
+      const batState = d.full ? t.full : bat < -30 ? t.charging : bat > 30 ? t.discharging : t.idle;
+      const batPower = Math.abs(bat) > 30 ? this._kw(bat) : "";
+      const gridSub = d.island ? t.noGrid : siec > 30 ? t.import : siec < -30 ? t.export : "";
+      const wx = this._weatherSvg(d, 360, 262, { rain: "rgba(100,116,139,.22)", snow: "rgba(148,163,184,.8)", fog: "rgba(148,163,184,.14)" });
+      const svg = `<svg class="pe-svg" viewBox="0 0 360 262" aria-hidden="true">
+        <defs><clipPath id="pe-body"><rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="26"/></clipPath>
+        <linearGradient id="pe-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".55"/><stop offset="1" stop-color="#10b981" stop-opacity=".25"/></linearGradient></defs>
+        ${wx}
+        ${flow(`M84 82 C110 82 112 110 ${bx} 118`, pv, V.pv, false)}
+        ${flow(`M${bx + bw} 118 C248 110 250 82 276 82`, d.dom ?? 0, "#64748b", false)}
+        ${d.island ? `<path d="M${bx + bw} 186 C250 192 252 200 276 200" stroke="${V.bad}" stroke-width="2.5" stroke-dasharray="4 6" fill="none" opacity=".7"/>` : flow(`M${bx + bw} 186 C250 192 252 200 276 200`, siec, V.grid, siec > 0)}
+        <rect x="${bx + bw / 2 - 17}" y="${by - 13}" width="34" height="18" rx="5" fill="#0f172a"/>
+        <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="26" fill="#0f172a"/>
+        <g clip-path="url(#pe-body)">
+          <rect class="pe-level" x="${bx}" y="${level.toFixed(1)}" width="${bw}" height="${(by + bh - level).toFixed(1)}" fill="url(#pe-fill)"/>
+          ${soc > 0 && soc < 100 ? `<rect x="${bx}" y="${level.toFixed(1)}" width="${bw}" height="2" fill="#34d399"/>` : ""}
+        </g>
+        <image href="${BRAND_MARK}" x="${bx + bw / 2 - 26}" y="${by + 22}" width="52" height="54"/>
+        <text x="${bx + bw / 2}" y="${by + 118}" text-anchor="middle" class="psoc">${d.soc ?? "–"}%</text>
+        <text x="${bx + bw / 2}" y="${by + 137}" text-anchor="middle" class="pbat">${esc(batState)}</text>
+        ${batPower ? `<text x="${bx + bw / 2}" y="${by + 151}" text-anchor="middle" class="pbat">${batPower}</text>` : ""}
+        ${node(50, 82, V.pv, pl ? "PANELE" : "SOLAR", this._kw(d.pv), "")}
+        ${node(310, 82, "#64748b", pl ? "DOM" : "HOME", this._kw(d.dom), "")}
+        ${node(310, 200, d.island ? "#94a3b8" : V.grid, pl ? "SIEĆ" : "GRID", d.island ? "—" : this._kw(d.siec), gridSub)}
+      </svg>`;
+      const wtext = this._weatherText(d);
+      return `<div class="pe-head">
+          <img src="${BRAND_MARK}" alt="" class="pe-logo">
+          <div><h2>${esc(d.name)}</h2><small>ProfitEMS${d.serial ? ` · ${esc(d.serial)}` : ""}</small></div>
+          <span class="pe-time">${wParts(new Date()).hm}${wtext ? ` · ${esc(wtext)}` : ""}</span>
+        </div>${svg}`;
+    }
   }
 
   function loadFonts(theme) {
@@ -745,6 +840,9 @@
     .value-row b { font-family: var(--c-num); font-size: 16px; white-space: nowrap; }
     .value-row small { font-size: 11px; color: var(--c-muted); font-family: var(--c-num); }
     .value-row .bal { padding-left: 10px; border-left: 1px solid var(--c-border); }
+    .value-row.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+    .value-row.four .bal { padding-left: 0; border-left: 0; grid-column: 1 / -1; }
+    .value-row.four .bal b { font-size: 22px; }
     .value .good { color: var(--c-good); } .value .bad { color: var(--c-bad); }
     .value p { margin: 0; font-size: 11px; color: var(--c-muted); line-height: 1.35; }
     .signals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -810,6 +908,20 @@
     .t-aurora .moment { font-size: 13.5px; }
     .t-aurora .pill.mode { color: var(--c-accent); }
 
+
+    .pe-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 0; }
+    .pe-logo { width: 34px; height: 34px; padding: 6px; box-sizing: border-box; border-radius: 10px; background: #0f172a; object-fit: contain; }
+    .pe-head h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+    .pe-head small { display: block; color: var(--c-muted); font-size: 12px; }
+    .pe-time { margin-left: auto; padding: 4px 10px; border-radius: 999px; background: #ffffff; border: 1px solid var(--c-border); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .pe-svg { display: block; width: 100%; height: auto; }
+    .pe-svg .pl { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; fill: var(--c-muted); font-family: var(--c-font); }
+    .pe-svg .pv { font-size: 13px; font-weight: 800; fill: var(--c-text); font-family: var(--c-num); }
+    .pe-svg .ps { font-size: 10px; font-weight: 700; font-family: var(--c-font); }
+    .pe-svg .psoc { font-size: 30px; font-weight: 800; fill: #ffffff; font-family: var(--c-num); }
+    .pe-svg .pbat { font-size: 10.5px; font-weight: 700; fill: #a7f3d0; font-family: var(--c-font); }
+    .pe-level { transition: y .8s ease, height .8s ease; }
+    .t-profitems .pill.mode { border-color: #a7f3d0; }
     .t-foundation .fnd-head { text-align: center; padding: 22px 16px 0; display: grid; gap: 4px; }
     .fnd-head small { font-family: var(--c-head); letter-spacing: .42em; font-size: 10.5px; color: var(--c-accent); }
     .fnd-head h2 { margin: 0; font-family: var(--c-head); font-weight: 400; font-size: 30px; letter-spacing: .14em; }

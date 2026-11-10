@@ -8,6 +8,12 @@ const DEMO_PLAN = [
   { od: "17:00", do: "21:00", tryb: "sprzedaz" }, { od: "21:00", do: "24:00", tryb: "samokonsumpcja" },
 ];
 
+const DEMO_PLAN_TOMORROW = [
+  { od: "00:00", do: "05:00", tryb: "ladowanie_z_sieci" }, { od: "05:00", do: "08:00", tryb: "rezerwa" },
+  { od: "08:00", do: "16:00", tryb: "samokonsumpcja" }, { od: "16:00", do: "20:00", tryb: "sprzedaz" },
+  { od: "20:00", do: "24:00", tryb: "samokonsumpcja" },
+];
+
 const DEMO_SCENARIOS = {
   poludnie: { label: "Południe, nadwyżka", time: "12:40", soc: 78, pv: 4820, dom: 1150, bat: -2400, siec: -1270, tryb: "samokonsumpcja", od: "07:00", nadW: 3670, weather: "partlycloudy", temp: 9, elevation: 22 },
   pelny: { label: "Magazyn pełny", time: "13:30", soc: 100, pv: 5600, dom: 900, bat: 0, siec: -4700, tryb: "samokonsumpcja", od: "07:00", nadW: 4700, full: true, weather: "sunny", temp: 11, elevation: 20 },
@@ -51,7 +57,11 @@ function demoHass(key, language = "pl") {
   add(P + "battery", "battery_level", s.soc, { device_class: "battery" });
   add(P + "pv", "pv_power", s.pv); add(P + "home", "home_power", s.dom); add(P + "grid", "grid_power", s.siec);
   add(P + "battery_power", "battery_power", s.bat); add(P + "surplus", "pv_surplus", s.nadW ?? 0);
-  add(P + "mode", "mode", s.tryb, { since: demoDate(s.od).toISOString(), plan });
+  const lateEvening = s.time >= "22:00";
+  add(P + "mode", "mode", s.tryb, {
+    since: demoDate(s.od).toISOString(), plan, plan_today: DEMO_PLAN,
+    plan_tomorrow: lateEvening || key === "szczyt" ? DEMO_PLAN_TOMORROW : null,
+  });
   add(P + "rce", "rce_price", DEMO_PRICES[nowH], { prices: slots });
   add(P + "connection", "connection", s.conn || "online");
   add(P + "last_reading", "last_reading", new Date(now.getTime() - (s.age ?? 2) * 60000).toISOString());
@@ -59,6 +69,10 @@ function demoHass(key, language = "pl") {
   add(P + "import_value", "grid_import_value", 455.1, { today: +(importKwh * 0.36).toFixed(2) });
   add(P + "export_energy", "grid_export_energy", 1520.2, { today: exportKwh });
   add(P + "import_energy", "grid_import_energy", 1210.7, { today: importKwh });
+  const profit = { poludnie: [6.42, 4.10, 2.32, 1.85], pelny: [8.90, 5.60, 3.30, 4.20], szczyt: [14.75, 4.30, 10.45, 9.60], noc: [0.84, 0, 0.84, 0], snieg: [1.12, 0.40, 0.72, 0.15], wyspa: [3.05, 1.90, 1.15, 0.80] }[key];
+  add(P + "value_today", "value_today", profit[0], { from_panels: profit[1], from_system: profit[2], export_revenue: profit[3], data_coverage: 98, calculated_at: new Date(now.getTime() - 25 * 60000).toISOString() });
+  add(P + "export_today", "grid_export_today", exportKwh);
+  add(P + "import_today", "grid_import_today", importKwh);
   add("binary_sensor.profitems_pe_26_0142_surplus", "pv_surplus_active", (s.nadW ?? 0) > 0 ? "on" : "off");
   add("binary_sensor.profitems_pe_26_0142_full", "battery_full", s.full ? "on" : "off");
   add("binary_sensor.profitems_pe_26_0142_cheapest", "cheapest_hour_now", nowH === minH ? "on" : "off");

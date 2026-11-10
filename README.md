@@ -8,7 +8,7 @@ Integracja tylko odczytuje dane. Nie steruje falownikiem ani magazynem energii: 
 
 ## Co dodaje względem oryginału
 
-- **Karta do dashboardu** w trzech motywach (Diorama, Aurora, Foundation): przepływ energii, mapa cen RCE z planem pracy, bilans dnia i sygnały do automatyzacji. Motywy reagują na pogodę i porę dnia. Karta instaluje się razem z integracją.
+- **Karta do dashboardu** w czterech motywach (ProfitEMS, Diorama, Aurora, Foundation): przepływ energii, mapa cen RCE z planem pracy, bilans dnia i sygnały do automatyzacji. Motywy reagują na pogodę i porę dnia. Karta instaluje się razem z integracją.
 - **Liczniki energii w kWh** do panelu Energia: produkcja, zużycie, pobór i oddawanie, ładowanie i rozładowanie magazynu.
 - **Wartość energii wg RCE**: ile warta była energia oddana i pobrana, łącznie i dziś.
 - **Kalendarz z planem pracy**: każdy blok planu to wydarzenie, z blokami, które już minęły tego dnia.
@@ -40,13 +40,13 @@ Po instalacji karta jest na liście kart jako **ProfitEMS**; nie trzeba dodawać
 
 ```yaml
 type: custom:profitems-card
-theme: diorama            # diorama, aurora albo foundation
+theme: profitems          # profitems, diorama, aurora albo foundation
 weather_entity: weather.dom
 ```
 
 | Opcja | Domyślnie | Znaczenie |
 |---|---|---|
-| `theme` | `diorama` | Motyw: `diorama` (jasna scena domu), `aurora` (neonowe pierścienie), `foundation` (złote orbity) |
+| `theme` | `diorama` | Motyw: `profitems` (barwy i znak ProfitEMS), `diorama` (jasna scena domu), `aurora` (neonowe pierścienie), `foundation` (złote orbity) |
 | `device` | pierwsza bramka | Bramka ProfitEMS, gdy masz kilka instalacji |
 | `title` | Dom | Tytuł karty |
 | `weather_entity` | pierwsza encja `weather.*` | Pogoda pokazywana w motywie: chmury, deszcz, śnieg, mgła, burza |
@@ -60,7 +60,7 @@ Pora dnia w motywie Diorama wynika z położenia słońca (`sun.sun`). Karta czy
 
 **Mapa cen i planu** pokazuje ceny RCE dziś i jutro, plan pracy systemu w kolorach trybów, bieżący moment i najtańszą godzinę. Najedź na słupek albo go dotknij, żeby zobaczyć cenę i tryb w tym okresie. Ceny 15-minutowe są rysowane jako cienkie słupki, z osią w godzinach.
 
-**Bilans dnia wg RCE** to szacunek: energia liczona z odczytów co 5 minut, wyceniona po cenie RCE netto z chwili odczytu, bez opłat dystrybucyjnych i podatków. API ProfitEMS nie podaje zysku ani liczników energii, więc integracja wylicza je sama.
+**Zysk dziś** karta bierze z ProfitEMS: to ta sama wartość co „Zysk dzisiaj” w aplikacji, z podziałem na zysk z paneli, z pracy systemu i ze sprzedaży, przeliczana co godzinę. Gdy ProfitEMS jej nie podaje (np. nieobsługiwana taryfa), karta pokazuje **bilans dnia wg RCE**, czyli szacunek: energia liczona z odczytów co 5 minut, wyceniona po cenie RCE netto z chwili odczytu, bez opłat dystrybucyjnych i podatków.
 
 ## Czujniki
 
