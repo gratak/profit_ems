@@ -3,7 +3,7 @@
 import copy
 from datetime import UTC, date, datetime, timedelta
 
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
@@ -25,10 +25,19 @@ READING = datetime(2026, 11, 2, 12, 5, 54, 400000, tzinfo=UTC)
 
 
 def _body(**changes):
+    """The fixture with changes; prices given as lists replace the API's prices with times."""
     body = copy.deepcopy(INSTALLATION)
     for path, value in changes.items():
         part, field = path.split("__")
         body[part][field] = value
+        if part == "ceny" and field in ("dzis", "jutro"):
+            body["ceny"]["godzinyDzis" if field == "dzis" else "godzinyJutro"] = None
+    return body
+
+
+def _without_inverter_counters(body):
+    """An inverter brand that reports no daily counters, so the estimates are used."""
+    body["energiaDzis"] = None
     return body
 
 
@@ -113,11 +122,11 @@ async def test_energy_counters_integrate_power_between_readings(
     hass, aioclient_mock, freezer
 ):
     freezer.move_to(READING + timedelta(seconds=30))
-    entry = await _setup(hass, aioclient_mock)
+    entry = await _setup(hass, aioclient_mock, _without_inverter_counters(_body()))
     assert float(_state(hass, "pv_energy").state) == 0
 
     later = READING + timedelta(minutes=5)
-    body = _body(polaczenie__ostatniOdczyt=later.isoformat())
+    body = _without_inverter_counters(_body(polaczenie__ostatniOdczyt=later.isoformat()))
     body["teraz"] = {"socPct": 75, "pvW": 1418, "domW": 333, "siecW": -1000, "bateriaW": -100}
     aioclient_mock.clear_requests()
     aioclient_mock.get(API_URL, json=body)
@@ -148,10 +157,12 @@ async def test_energy_counters_integrate_power_between_readings(
 
 async def test_energy_skips_a_long_gap(hass, aioclient_mock, freezer):
     freezer.move_to(READING + timedelta(seconds=30))
-    await _setup(hass, aioclient_mock)
+    await _setup(hass, aioclient_mock, _without_inverter_counters(_body()))
     later = READING + timedelta(hours=2)
     aioclient_mock.clear_requests()
-    aioclient_mock.get(API_URL, json=_body(polaczenie__ostatniOdczyt=later.isoformat()))
+    aioclient_mock.get(
+        API_URL, json=_without_inverter_counters(_body(polaczenie__ostatniOdczyt=later.isoformat()))
+    )
     freezer.move_to(later + timedelta(seconds=30))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
@@ -170,7 +181,7 @@ async def test_energy_counters_survive_a_restart(hass, aioclient_mock, freezer, 
         },
     }
     freezer.move_to(READING + timedelta(seconds=30))
-    aioclient_mock.get(API_URL, json=INSTALLATION)
+    aioclient_mock.get(API_URL, json=_without_inverter_counters(_body()))
     entry = MockConfigEntry(
         domain=DOMAIN,
         entry_id="test_entry",
@@ -210,11 +221,12 @@ async def test_plan_calendar(hass, aioclient_mock, freezer):
         {"od": "13:08", "do": "17:00", "tryb": "samokonsumpcja"},
         {"od": "17:00", "do": "24:00", "tryb": "sprzedaz"},
     ]
+    body["planDoby"] = [{"od": "00:00", "do": "13:08", "tryb": "rezerwa"}, *body["plan"]]
     await _setup(hass, aioclient_mock, body)
     state = _state(hass, "plan", "calendar")
-    # 13:06 Polish time: the first block starts at 13:08, so it is shown as the next event.
-    assert state.state == "off"
-    assert state.attributes["message"] == "Self-consumption"
+    # 13:06 Polish time: the morning block of the whole day's plan is still in progress.
+    assert state.state == "on"
+    assert state.attributes["message"] == "Reserve"
 
     result = await hass.services.async_call(
         "calendar",
@@ -290,6 +302,7 @@ async def test_plan_keeps_earlier_blocks_of_the_day(hass, aioclient_mock, freeze
         {"od": "13:00", "do": "17:00", "tryb": "samokonsumpcja"},
         {"od": "17:00", "do": "24:00", "tryb": "sprzedaz"},
     ]
+    del body["planDoby"]  # an older API response: the integration keeps the plan itself
     entry = await _setup(hass, aioclient_mock, body)
 
     later = copy.deepcopy(body)
@@ -327,3 +340,80 @@ async def test_card_is_served_and_loaded_on_dashboards(hass):
     assert CARD_FILE.is_file()
     url = hass.data[DATA_EXTRA_MODULE_URL].add.call_args.args[0]
     assert url.startswith("/profitems/profitems-card.js?v=")
+
+
+async def test_calendar_shows_tomorrows_plan(hass, aioclient_mock, freezer):
+    freezer.move_to(datetime(2026, 11, 2, 21, 30, tzinfo=UTC))  # 22:30 Polish time
+    body = _body(polaczenie__ostatniOdczyt=datetime(2026, 11, 2, 21, 28, tzinfo=UTC).isoformat())
+    body["planJutro"] = [
+        {"od": "00:00", "do": "05:00", "tryb": "ladowanie_z_sieci"},
+        {"od": "05:00", "do": "24:00", "tryb": "samokonsumpcja"},
+    ]
+    await _setup(hass, aioclient_mock, body)
+    state = _state(hass, "plan", "calendar")
+    result = await hass.services.async_call(
+        "calendar",
+        "get_events",
+        {"start_date_time": "2026-11-03T00:00:00+01:00", "duration": {"hours": 24}},
+        target={"entity_id": state.entity_id},
+        blocking=True,
+        return_response=True,
+    )
+    events = result[state.entity_id]["events"]
+    assert [e["summary"] for e in events] == ["Charging from the grid", "Self-consumption"]
+    assert _state(hass, "mode").attributes["plan_tomorrow"] == body["planJutro"]
+
+
+async def test_inverter_counters_replace_the_estimates(hass, aioclient_mock, freezer):
+    freezer.move_to(READING + timedelta(seconds=30))
+    body = _body()
+    body["energiaDzis"]["ladowanieKwh"] = None  # this brand does not report battery charging
+    await _setup(hass, aioclient_mock, body)
+    registry = er.async_get(hass)
+    serial = INSTALLATION["numerBramki"]
+    assert float(_state(hass, "pv_energy_today").state) == 14.2
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{serial}_pv_energy") is None
+    # The missing inverter counter is disabled and the estimate stands in for it.
+    charge = registry.async_get_entity_id("sensor", DOMAIN, f"{serial}_battery_charge_today")
+    assert registry.async_get(charge).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert _state(hass, "battery_charge_energy").state == "0.0"
+
+
+async def test_estimates_are_removed_once_the_inverter_reports_counters(hass, aioclient_mock, freezer):
+    freezer.move_to(READING + timedelta(seconds=30))
+    entry = await _setup(hass, aioclient_mock, _without_inverter_counters(_body()))
+    registry = er.async_get(hass)
+    serial = INSTALLATION["numerBramki"]
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{serial}_pv_energy")
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(API_URL, json=INSTALLATION)
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{serial}_pv_energy") is None
+
+
+async def test_value_today_resets_at_polish_midnight(hass, aioclient_mock, freezer):
+    await hass.config.async_set_time_zone("America/New_York")
+    freezer.move_to(READING + timedelta(seconds=30))
+    await _setup(hass, aioclient_mock)
+    state = _state(hass, "value_today")
+    assert float(state.state) == 6.42
+    assert state.attributes["from_system"] == 2.32
+    assert state.attributes["last_reset"] == "2026-11-02T00:00:00+01:00"  # Polish midnight
+
+
+async def test_prices_with_times_from_the_api_are_used(hass, aioclient_mock, freezer):
+    freezer.move_to(READING + timedelta(seconds=30))
+    body = _body()
+    body["ceny"]["godzinyDzis"] = [
+        {"od": "2026-11-02T11:00:00.000Z", "do": "2026-11-02T12:00:00.000Z", "cena": 0.2},
+        {"od": "2026-11-02T12:00:00.000Z", "do": "2026-11-02T13:00:00.000Z", "cena": 0.9},
+    ]
+    await _setup(hass, aioclient_mock, body)
+    prices = _state(hass, "rce_price").attributes["prices"]
+    assert prices[0] == {
+        "start": "2026-11-02T12:00:00+01:00",
+        "end": "2026-11-02T13:00:00+01:00",
+        "price": 0.2,
+    }

@@ -106,6 +106,20 @@ async def test_entities_show_api_values(hass, aioclient_mock):
     assert _state(hass, "pv_surplus_active", "binary_sensor").state == "on"
     assert _state(hass, "battery_full", "binary_sensor").state == "off"
     assert _state(hass, "control_active", "binary_sensor").state == "on"
+    assert float(_state(hass, "pv_energy_today").state) == 14.2
+    assert float(_state(hass, "home_energy_today").state) == 6.8
+    assert float(_state(hass, "grid_import_today").state) == 0.9
+    assert float(_state(hass, "grid_export_today").state) == 7.6
+    assert float(_state(hass, "battery_charge_today").state) == 5.1
+    assert float(_state(hass, "battery_discharge_today").state) == 2.4
+    assert _state(hass, "pv_energy_today").attributes["state_class"] == "total_increasing"
+    assert float(_state(hass, "value_today").state) == 6.42
+    assert _state(hass, "value_today").attributes["state_class"] == "total"
+    assert _state(hass, "value_today").attributes["last_reset"]
+    assert _state(hass, "value_today").attributes["from_system"] == 2.32
+    assert _state(hass, "mode").attributes["plan_today"] == INSTALLATION["planDoby"]
+    assert _state(hass, "mode").attributes["plan_tomorrow"] is None
+    assert _state(hass, "rce_price").attributes["prices_today"] == INSTALLATION["ceny"]["godzinyDzis"]
 
 
 async def test_offline_installation_has_unknown_values(hass, aioclient_mock):
@@ -117,6 +131,36 @@ async def test_offline_installation_has_unknown_values(hass, aioclient_mock):
     assert _state(hass, "last_reading").state == "unknown"
     assert _state(hass, "connection").state == "offline"
     assert _state(hass, "island_mode", "binary_sensor").state == "unknown"
+
+
+async def test_counters_the_brand_does_not_report_are_disabled(hass, aioclient_mock):
+    body = copy.deepcopy(INSTALLATION)
+    body["energiaDzis"] = {**dict.fromkeys(body["energiaDzis"]), "pvKwh": 18.4}
+    await _setup(hass, aioclient_mock, body)
+    registry = er.async_get(hass)
+    pv = registry.async_get_entity_id("sensor", DOMAIN, f"{INSTALLATION['numerBramki']}_pv_energy_today")
+    charge = registry.async_get_entity_id("sensor", DOMAIN, f"{INSTALLATION['numerBramki']}_battery_charge_today")
+    assert registry.async_get(pv).disabled_by is None
+    assert registry.async_get(charge).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_older_api_without_new_fields_keeps_working(hass, aioclient_mock):
+    body = copy.deepcopy(INSTALLATION)
+    for key in ("energiaDzis", "wartoscDzis", "planDoby", "planJutro"):
+        del body[key]
+    for key in ("godzinyDzis", "godzinyJutro"):
+        del body["ceny"][key]
+    await _setup(hass, aioclient_mock, body)
+    assert float(_state(hass, "battery_level").state) == 74
+    assert er.async_get(hass).async_get(
+        er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{INSTALLATION['numerBramki']}_pv_energy_today")
+    ).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert _state(hass, "value_today").state == "unknown"
+    # Without planDoby the plan kept by the integration is used.
+    assert _state(hass, "mode").attributes["plan_today"] == body["plan"]
+    assert _state(hass, "rce_price").attributes["prices_today"] is None
+    # Without the inverter's counters the integration's own estimates are created.
+    assert _state(hass, "pv_energy").state == "0.0"
 
 
 async def test_new_mode_from_api_does_not_break_sensor(hass, aioclient_mock):

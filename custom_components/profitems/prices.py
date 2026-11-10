@@ -69,13 +69,49 @@ def slots_for_day(values: list[Any] | None, day: date) -> list[PriceSlot]:
     return slots
 
 
+def slots_from_periods(periods: list[Any] | None) -> list[PriceSlot]:
+    """Turn the API's prices with start and end (godzinyDzis, godzinyJutro) into slots."""
+    slots = []
+    for item in periods or []:
+        if not isinstance(item, dict):
+            continue
+        start = _parse_utc(item.get("od"))
+        end = _parse_utc(item.get("do"))
+        price = item.get("cena")
+        if start is None or end is None or end <= start:
+            continue
+        if isinstance(price, bool) or not isinstance(price, (int, float)):
+            continue
+        slots.append(PriceSlot(start.astimezone(MARKET_TZ), end.astimezone(MARKET_TZ), float(price)))
+    return slots
+
+
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else None
+
+
 def price_slots(data: dict[str, Any], now: datetime) -> list[PriceSlot]:
-    """Return today's and, when published, tomorrow's price slots."""
+    """Return today's and, when published, tomorrow's price slots.
+
+    The prices with start and end from the API are used when present; otherwise the plain
+    lists are given times here (older API responses).
+    """
     prices = data.get("ceny") or {}
     today = market_today(now)
-    return slots_for_day(prices.get("dzis"), today) + slots_for_day(
-        prices.get("jutro"), today + timedelta(days=1)
-    )
+    result = []
+    for periods, values, day in (
+        ("godzinyDzis", "dzis", today),
+        ("godzinyJutro", "jutro", today + timedelta(days=1)),
+    ):
+        slots = slots_from_periods(prices.get(periods))
+        result += slots or slots_for_day(prices.get(values), day)
+    return result
 
 
 def cheapest_slot(slots: list[PriceSlot], day: date) -> PriceSlot | None:
@@ -134,9 +170,11 @@ def cheapest_window(
     return best
 
 
-def plan_blocks(plan: list[Any] | None, now: datetime) -> list[tuple[datetime, datetime, str]]:
-    """Return the plan of the market day as (start, end, mode)."""
-    today = market_today(now)
+def plan_blocks(
+    plan: list[Any] | None, now: datetime, days_ahead: int = 0
+) -> list[tuple[datetime, datetime, str]]:
+    """Return a day's plan as (start, end, mode): today's, or with days_ahead=1 tomorrow's."""
+    today = market_today(now) + timedelta(days=days_ahead)
     blocks = []
     for item in plan or []:
         try:

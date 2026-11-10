@@ -7,7 +7,7 @@
  * Copyright (c) 2026 gratak. PolyForm Noncommercial License 1.0.0, see LICENSE.
  */
 (() => {
-  const CARD_VERSION = "0.2.0";
+  const CARD_VERSION = "0.3.0";
   const TZ = "Europe/Warsaw";
   const SVG = "http://www.w3.org/2000/svg";
 

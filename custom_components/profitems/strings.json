@@ -86,28 +86,66 @@
         "name": "Cheapest hour today, start"
       },
       "pv_energy": {
-        "name": "Solar production energy"
+        "name": "Solar production energy (estimate)"
       },
       "home_energy": {
-        "name": "Home consumption energy"
+        "name": "Home consumption energy (estimate)"
       },
       "grid_import_energy": {
-        "name": "Grid import energy"
+        "name": "Grid import energy (estimate)"
       },
       "grid_export_energy": {
-        "name": "Grid export energy"
+        "name": "Grid export energy (estimate)"
       },
       "battery_charge_energy": {
-        "name": "Battery charge energy"
+        "name": "Battery charge energy (estimate)"
       },
       "battery_discharge_energy": {
-        "name": "Battery discharge energy"
+        "name": "Battery discharge energy (estimate)"
       },
       "grid_export_value": {
         "name": "Grid export value (RCE)"
       },
       "grid_import_value": {
         "name": "Grid import value (RCE)"
+      },
+      "pv_energy_today": {
+        "name": "Solar production today"
+      },
+      "home_energy_today": {
+        "name": "Home consumption today"
+      },
+      "grid_import_today": {
+        "name": "Grid import today"
+      },
+      "grid_export_today": {
+        "name": "Grid export today"
+      },
+      "battery_charge_today": {
+        "name": "Battery charge today"
+      },
+      "battery_discharge_today": {
+        "name": "Battery discharge today"
+      },
+      "value_today": {
+        "name": "Energy value today",
+        "state_attributes": {
+          "from_panels": {
+            "name": "From the panels"
+          },
+          "from_system": {
+            "name": "From the ProfitEMS system"
+          },
+          "export_revenue": {
+            "name": "Export revenue"
+          },
+          "data_coverage": {
+            "name": "Data coverage"
+          },
+          "calculated_at": {
+            "name": "Calculated at"
+          }
+        }
       }
     },
     "binary_sensor": {

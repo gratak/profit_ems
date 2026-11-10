@@ -86,28 +86,66 @@
         "name": "Najtańsza godzina dziś, początek"
       },
       "pv_energy": {
-        "name": "Energia z paneli"
+        "name": "Energia z paneli (szacunek)"
       },
       "home_energy": {
-        "name": "Energia zużyta w domu"
+        "name": "Energia zużyta w domu (szacunek)"
       },
       "grid_import_energy": {
-        "name": "Energia pobrana z sieci"
+        "name": "Energia pobrana z sieci (szacunek)"
       },
       "grid_export_energy": {
-        "name": "Energia oddana do sieci"
+        "name": "Energia oddana do sieci (szacunek)"
       },
       "battery_charge_energy": {
-        "name": "Energia ładowania magazynu"
+        "name": "Energia ładowania magazynu (szacunek)"
       },
       "battery_discharge_energy": {
-        "name": "Energia rozładowania magazynu"
+        "name": "Energia rozładowania magazynu (szacunek)"
       },
       "grid_export_value": {
         "name": "Wartość energii oddanej (RCE)"
       },
       "grid_import_value": {
         "name": "Wartość energii pobranej (RCE)"
+      },
+      "pv_energy_today": {
+        "name": "Produkcja z paneli dziś"
+      },
+      "home_energy_today": {
+        "name": "Zużycie domu dziś"
+      },
+      "grid_import_today": {
+        "name": "Pobór z sieci dziś"
+      },
+      "grid_export_today": {
+        "name": "Oddawanie do sieci dziś"
+      },
+      "battery_charge_today": {
+        "name": "Ładowanie magazynu dziś"
+      },
+      "battery_discharge_today": {
+        "name": "Rozładowanie magazynu dziś"
+      },
+      "value_today": {
+        "name": "Wartość energii dziś",
+        "state_attributes": {
+          "from_panels": {
+            "name": "Z paneli"
+          },
+          "from_system": {
+            "name": "Z systemu ProfitEMS"
+          },
+          "export_revenue": {
+            "name": "Sprzedaż"
+          },
+          "data_coverage": {
+            "name": "Pokrycie danych"
+          },
+          "calculated_at": {
+            "name": "Przeliczono"
+          }
+        }
       }
     },
     "binary_sensor": {

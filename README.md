@@ -71,24 +71,38 @@ Pora dnia w motywie Diorama wynika z położenia słońca (`sun.sun`). Karta czy
 | Moc sieci | Dodatnia: pobór z sieci, ujemna: oddawanie do sieci, W |
 | Moc magazynu | Ujemna: ładowanie, dodatnia: rozładowanie, W |
 | Nadwyżka z paneli | O ile produkcja przewyższa zużycie domu, W |
-| Tryb pracy | Bieżący tryb; plan w atrybutach `plan` (reszta doby) i `plan_today` (cała doba) |
-| Cena RCE | Cena bieżącej godziny, zł/kWh netto; ceny w atrybutach `today`, `tomorrow` i `prices` |
+| Tryb pracy | Bieżący tryb; plan w atrybutach `plan` (reszta doby), `plan_today` (cała doba) i `plan_tomorrow` (jutro, od 22:00) |
+| Cena RCE | Cena bieżącej godziny, zł/kWh netto; ceny w atrybutach `today` i `tomorrow`, z początkiem i końcem każdej godziny w `prices_today` i `prices_tomorrow`, oba dni razem w `prices` |
+| Produkcja z paneli dziś, Zużycie domu dziś, Pobór z sieci dziś, Oddawanie do sieci dziś, Ładowanie magazynu dziś, Rozładowanie magazynu dziś | Liczniki energii z falownika od jego północy, kWh; do panelu Energia |
+| Wartość energii dziś | Wartość energii od północy, liczona tak samo jak „Zysk dzisiaj” w aplikacji, zł; podział (z paneli, z systemu ProfitEMS, sprzedaż) w atrybutach |
+| Energia … (szacunek) | Liczniki kWh wyliczane przez integrację z mocy co 5 minut, tylko dla liczników, których falownik nie podaje |
+| Wartość energii oddanej (RCE), Wartość energii pobranej (RCE) | Narastająco w zł, wg ceny RCE; suma dzisiejsza w atrybucie `today` |
 | Najtańsza godzina dziś; Najtańsza godzina dziś, początek | Godzina 0–23 i ten sam moment jako znacznik czasu |
-| Energia z paneli, zużyta w domu, pobrana z sieci, oddana do sieci, ładowania i rozładowania magazynu | kWh, do panelu Energia; suma dzisiejsza w atrybucie `today` |
-| Wartość energii oddanej (RCE), Wartość energii pobranej (RCE) | zł; suma dzisiejsza w atrybucie `today` |
 | Dostępna nadwyżka z paneli, Magazyn pełny, Trwa najtańsza godzina, Praca wyspowa | Tak lub nie |
-| Plan (kalendarz) | Bloki planu na dziś jako wydarzenia |
+| Plan (kalendarz) | Bloki planu na dziś i jutro jako wydarzenia |
 | Połączenie, Ostatni odczyt, Sterowanie aktywne | Dane diagnostyczne |
 
-Liczniki energii liczą energię od dodania integracji i przetrwają restart. Przerwy dłuższe niż 15 minut (np. awaria bramki) są pomijane, bo moc w tym czasie jest nieznana. Ceny i plan nie są zapisywane w historii, żeby nie powiększać bazy danych.
+Które liczniki energii podaje falownik:
+
+| Marka | Liczniki |
+|---|---|
+| Deye, Sofar, MUST | wszystkie sześć |
+| FoxESS | produkcja, zużycie domu, pobór i oddawanie; bez ładowania i rozładowania magazynu |
+| SolaX | tylko produkcja |
+
+Liczniki, których falownik nie podaje, są dodawane jako wyłączone; zamiast nich integracja dodaje swój szacunek z odczytów mocy. Szacunek liczy energię od dodania integracji i przetrwa restart; przerwy dłuższe niż 15 minut są pomijane. Falownik zeruje swoje liczniki według własnego zegara, więc moment zerowania może różnić się od północy. „Wartość energii dziś” system ProfitEMS przelicza co godzinę. Ceny i plan nie są zapisywane w historii, żeby nie powiększać bazy danych.
+
+Dane o pracy instalacji są aktualizowane co 5 minut. Podczas okresu nauki system tylko obserwuje instalację: tryb to „Obserwacja”, a plan jest pusty.
 
 ### Panel Energia
 
 W **Ustawienia → Pulpity → Energia** wybierz:
 
-- **Sieć elektryczna**: pobór z *Energia pobrana z sieci*, oddawanie do *Energia oddana do sieci*. Jako cenę oddawania możesz wskazać *Cena RCE*.
-- **Panele słoneczne**: *Energia z paneli*.
-- **Magazyn energii**: *Energia ładowania magazynu* i *Energia rozładowania magazynu*.
+- **Sieć elektryczna**: pobór z *Pobór z sieci dziś*, oddawanie do *Oddawanie do sieci dziś*. Jako cenę oddawania możesz wskazać *Cena RCE*.
+- **Panele słoneczne**: *Produkcja z paneli dziś*.
+- **Magazyn energii**: *Ładowanie magazynu dziś* i *Rozładowanie magazynu dziś*.
+
+Jeśli falownik któregoś licznika nie podaje, wskaż zamiast niego czujnik z dopiskiem *(szacunek)*.
 
 ## Usługa: najtańszy czas
 
