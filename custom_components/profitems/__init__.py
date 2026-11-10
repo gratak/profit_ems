@@ -63,6 +63,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ProfitEmsConfigEntry) -
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ProfitEmsConfigEntry) -> None:
-    """Remove what the entry left behind: its saved counters and its repair issue."""
+    """Remove what the entry left behind: its saved counters, history and repair issue."""
     ir.async_delete_issue(hass, DOMAIN, f"gateway_offline_{entry.entry_id}")
     await Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.energy").async_remove()
+    await Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}.history").async_remove()

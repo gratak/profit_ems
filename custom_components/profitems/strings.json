@@ -146,6 +146,14 @@
             "name": "Calculated at"
           }
         }
+      },
+      "battery_activity": {
+        "name": "Battery now",
+        "state": {
+          "charging": "Charging",
+          "discharging": "Discharging",
+          "idle": "Idle"
+        }
       }
     },
     "binary_sensor": {

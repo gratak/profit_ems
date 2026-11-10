@@ -146,6 +146,14 @@
             "name": "Przeliczono"
           }
         }
+      },
+      "battery_activity": {
+        "name": "Magazyn teraz",
+        "state": {
+          "charging": "Ładowanie",
+          "discharging": "Rozładowanie",
+          "idle": "Bez pracy"
+        }
       }
     },
     "binary_sensor": {

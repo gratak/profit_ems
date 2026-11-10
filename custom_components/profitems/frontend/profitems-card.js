@@ -20,6 +20,10 @@
       conn: { online: "Połączono", opozniona: "Opóźnione", offline: "Brak połączenia" },
       island: "Praca wyspowa", pricesPlan: "Ceny i plan", rceNet: "RCE netto", today: "Dziś", tomorrow: "Jutro",
       tomorrowLater: "Ceny na jutro pojawiają się po południu", planTomorrow: "Plan na jutro pojawi się o 22:00",
+      history: "Praca magazynu", yesterday: "Wczoraj", charged: "Ładowanie", discharged: "Rozładowanie",
+      historyEmpty: "Magazyn jeszcze nic dziś nie robił.", historyNote: "Ceny RCE netto; kwota to wartość energii pobranej z sieci lub do niej oddanej.",
+      fromGrid: "z sieci", toGrid: "do sieci", avg: "śr.",
+      historySum: (c, cp, dch, dp) => `Naładowano ${c}${cp ? ` po śr. ${cp}` : ""}, oddano ${dch}${dp ? ` po śr. ${dp}` : ""}.`,
       profit: "Zysk dziś", total: "Razem", fromPanels: "Z paneli", fromSystem: "Z systemu ProfitEMS",
       profitNote: (hm) => `Wyliczenie ProfitEMS, tak jak w aplikacji. Stan na ${hm}.`,
       cheapest: "najtańsza", now: "teraz", surplus: "Nadwyżka z paneli", batteryFull: "Magazyn pełny",
@@ -51,7 +55,7 @@
       ed: {
         device: "Bramka ProfitEMS", theme: "Motyw", title: "Tytuł", weather_entity: "Encja pogody", show_weather: "Pogoda w motywie",
         price_resolution: "Ceny", show_status: "Status", show_moment: "Opis chwili", show_prices: "Ceny i plan",
-        show_value: "Bilans dnia", show_signals: "Sygnały", load_fonts: "Czcionki motywu z Google Fonts",
+        show_value: "Bilans dnia", show_history: "Praca magazynu", show_signals: "Sygnały", load_fonts: "Czcionki motywu z Google Fonts",
         auto: "Jak w danych (godzina albo 15 minut)", hour: "Uśrednione do godzin",
       },
     },
@@ -62,6 +66,10 @@
       conn: { online: "Connected", opozniona: "Delayed", offline: "Offline" },
       island: "Island mode", pricesPlan: "Prices and plan", rceNet: "RCE net", today: "Today", tomorrow: "Tomorrow",
       tomorrowLater: "Tomorrow's prices are published in the afternoon", planTomorrow: "The plan for tomorrow appears at 22:00",
+      history: "Battery activity", yesterday: "Yesterday", charged: "Charging", discharged: "Discharging",
+      historyEmpty: "The battery has not done anything yet today.", historyNote: "Net RCE prices; the amount is the value of the energy taken from or sent to the grid.",
+      fromGrid: "from the grid", toGrid: "to the grid", avg: "avg",
+      historySum: (c, cp, dch, dp) => `Charged ${c}${cp ? ` at avg ${cp}` : ""}, discharged ${dch}${dp ? ` at avg ${dp}` : ""}.`,
       profit: "Profit today", total: "Total", fromPanels: "From the panels", fromSystem: "From ProfitEMS",
       profitNote: (hm) => `Calculated by ProfitEMS, as in the app. As of ${hm}.`,
       cheapest: "cheapest", now: "now", surplus: "Solar surplus", batteryFull: "Battery full",
@@ -93,7 +101,7 @@
       ed: {
         device: "ProfitEMS gateway", theme: "Theme", title: "Title", weather_entity: "Weather entity", show_weather: "Weather in the theme",
         price_resolution: "Prices", show_status: "Status", show_moment: "Moment", show_prices: "Prices and plan",
-        show_value: "Today's balance", show_signals: "Signals", load_fonts: "Theme fonts from Google Fonts",
+        show_value: "Today's balance", show_history: "Battery activity", show_signals: "Signals", load_fonts: "Theme fonts from Google Fonts",
         auto: "As in the data (hour or 15 minutes)", hour: "Averaged to hours",
       },
     },
@@ -176,7 +184,7 @@
   const KEYS = [
     "battery_level", "pv_power", "home_power", "grid_power", "battery_power", "pv_surplus", "mode", "rce_price",
     "connection", "last_reading", "grid_export_value", "grid_import_value", "grid_export_energy", "grid_import_energy",
-    "pv_energy", "value_today", "grid_export_today", "grid_import_today", "pv_surplus_active", "battery_full", "cheapest_hour_now", "island_mode",
+    "pv_energy", "value_today", "battery_activity", "grid_export_today", "grid_import_today", "pv_surplus_active", "battery_full", "cheapest_hour_now", "island_mode",
   ];
 
   // ------------------------------------------------------------------ helpers
@@ -212,7 +220,7 @@
       if (config.theme && !THEMES[config.theme]) throw new Error(`Unknown theme: ${config.theme}`);
       this._config = {
         theme: "diorama", show_weather: true, price_resolution: "auto", show_status: true, show_moment: true,
-        show_prices: true, show_value: true, show_signals: true, load_fonts: false, ...config,
+        show_prices: true, show_value: true, show_history: true, show_signals: true, load_fonts: false, ...config,
       };
       this._sel = null;
       this._day = "today";
@@ -305,6 +313,9 @@
           soldKwh: val("grid_export_today") ?? today("grid_export_energy"), boughtKwh: val("grid_import_today") ?? today("grid_import_energy"),
           hasValue: Boolean(ids.grid_export_value || ids.value_today),
         },
+        history: ids.battery_activity ? {
+          hours: st("battery_activity").attributes?.hours || [], sessions: st("battery_activity").attributes?.sessions || [],
+        } : null,
         profit: ids.value_today && val("value_today") !== null ? {
           total: val("value_today"), panels: num(st("value_today").attributes?.from_panels),
           system: num(st("value_today").attributes?.from_system), sale: num(st("value_today").attributes?.export_revenue),
@@ -369,6 +380,7 @@
             ${c.show_moment ? `<p class="moment" data-label="${esc(t.forecast)}">${esc(m.main)}${m.next ? `<small>${esc(m.next)}</small>` : ""}</p>` : ""}
             ${c.show_prices ? this._timeline(theme, d) : ""}
             ${c.show_value && d.value.hasValue ? this._value(d) : ""}
+            ${c.show_history && d.history ? this._history(theme, d) : ""}
             ${c.show_signals ? this._signals(d) : ""}
           </div>`;
       }
@@ -391,8 +403,11 @@
         this._render();
         this.shadowRoot.querySelector(".tl svg")?.focus();
       });
-      root.querySelectorAll(".tl-toggle button").forEach((b) => b.addEventListener("click", () => {
+      root.querySelectorAll(".tl-toggle button[data-day]").forEach((b) => b.addEventListener("click", () => {
         this._day = b.dataset.day; this._sel = null; this._render();
+      }));
+      root.querySelectorAll(".tl-toggle button[data-hday]").forEach((b) => b.addEventListener("click", () => {
+        this._histDay = b.dataset.hday; this._render();
       }));
     }
 
@@ -442,6 +457,72 @@
           <div class="bal"><span>${t.balance}</span><b class="${bal > 0 ? "good" : bal < 0 ? "bad" : ""}">${this._pln(bal, true)}</b></div>
         </div>
         <p>${t.valueNote}</p>
+      </section>`;
+    }
+
+    _history(T, d) {
+      const t = this._t, V = T.vars;
+      const todayKey = wParts(new Date()).day;
+      const yKey = wParts(new Date(Date.now() - 86400000)).day;
+      const dayKey = this._histDay === "yesterday" ? yKey : todayKey;
+      const hours = d.history.hours.filter((h) => wParts(new Date(h.start)).day === dayKey);
+      const sess = d.history.sessions.filter((x) => wParts(new Date(x.start)).day === dayKey);
+      const hasYesterday = d.history.hours.some((h) => wParts(new Date(h.start)).day === yKey);
+      const isToday = dayKey === todayKey;
+      const head = `<div class="tl-head"><h3>${t.history}</h3>
+        <div class="tl-toggle hist-toggle" role="group">
+          <button data-hday="today" aria-pressed="${isToday}">${t.today}</button>
+          <button data-hday="yesterday" aria-pressed="${!isToday}" ${hasYesterday ? "" : "disabled"}>${t.yesterday}</button>
+        </div></div>`;
+      if (!hours.length || !sess.length) return `<section class="tl hist">${head}<p class="hist-empty">${t.historyEmpty}</p></section>`;
+      // Hour bars: charging up, discharging down; the price of each hour as a line.
+      const W = 340, x0 = 30, x1 = 336, mid = 52, span = 40, bw = (x1 - x0) / 24;
+      const maxKwh = Math.max(0.5, ...hours.map((h) => Math.max(h.charge_kwh, h.discharge_kwh)));
+      const prices = hours.map((h) => num(h.price)).filter((p) => p !== null);
+      const pMax = Math.max(0.25, ...prices);
+      let bars = "", line = "";
+      const pts = [];
+      for (const h of hours) {
+        const hr = wParts(new Date(h.start)).h, x = x0 + hr * bw;
+        const up = (h.charge_kwh / maxKwh) * span, down = (h.discharge_kwh / maxKwh) * span;
+        if (up > 0.3) bars += `<rect x="${(x + 1.2).toFixed(1)}" y="${(mid - up).toFixed(1)}" width="${(bw - 2.4).toFixed(1)}" height="${up.toFixed(1)}" rx="${Math.min(T.barR, 2)}" fill="${V.bat}"><title>${hr}:00 ${t.charged} ${this._n(h.charge_kwh, 2)} kWh</title></rect>`;
+        if (down > 0.3) bars += `<rect x="${(x + 1.2).toFixed(1)}" y="${mid}" width="${(bw - 2.4).toFixed(1)}" height="${down.toFixed(1)}" rx="${Math.min(T.barR, 2)}" fill="${V.pv}"><title>${hr}:00 ${t.discharged} ${this._n(h.discharge_kwh, 2)} kWh</title></rect>`;
+        if (num(h.price) !== null) pts.push([x + bw / 2, mid + span - 2 - (num(h.price) / pMax) * (2 * span - 4)]);
+      }
+      if (pts.length > 1) line = `<polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--c-muted)" stroke-width="1.2" stroke-dasharray="3 2" opacity=".8"/>`;
+      let ax = `<line x1="${x0}" x2="${x1}" y1="${mid}" y2="${mid}" stroke="${T.label}" stroke-opacity=".5"/>`;
+      for (const h of [0, 6, 12, 18, 24]) ax += `<text x="${x0 + h * bw}" y="${mid + span + 14}" text-anchor="${h === 0 ? "start" : h === 24 ? "end" : "middle"}" class="lbl">${String(h).padStart(2, "0")}</text>`;
+      ax += `<text x="${x0 - 5}" y="${mid - span + 6}" text-anchor="end" class="lbl">+${this._n(maxKwh, 1)}</text><text x="${x0 - 5}" y="${mid + span}" text-anchor="end" class="lbl">−${this._n(maxKwh, 1)}</text>`;
+      // Sessions, newest first.
+      const kwh = (x) => `${this._n(x, 1)}\u00a0kWh`;
+      const rows = [...sess].reverse().map((x) => {
+        const charging = x.activity === "charging";
+        const label = x.mode && x.mode !== "obserwacja" ? this._mode(x.mode) : charging ? t.charged : t.discharged;
+        const range = `${wParts(new Date(x.start)).hm}–${wParts(new Date(x.end)).hm === "00:00" ? "24:00" : wParts(new Date(x.end)).hm}`;
+        const grid = x.grid_kwh >= 0.05 ? ` · ${kwh(x.grid_kwh)} ${charging ? t.fromGrid : t.toGrid}` : "";
+        const soc = x.soc_start !== null && x.soc_end !== null && x.soc_start !== undefined ? ` · ${Math.round(x.soc_start)}→${Math.round(x.soc_end)}%` : "";
+        const value = x.value_pln !== null && x.grid_kwh >= 0.05 ? `<b class="${charging ? "" : "good"}">${charging ? "−" : "+"}${this._n(Math.abs(x.value_pln), 2)}\u00a0zł</b>` : "<b></b>";
+        return `<li style="--m:${charging ? V.bat : V.pv}">
+          <span class="hs-time">${range}</span>
+          <span class="hs-what"><i></i>${esc(label)}<small>${charging ? "+" : "−"}${kwh(x.energy_kwh)}${grid}${soc}</small></span>
+          <span class="hs-price">${x.average_price !== null ? `${t.avg} ${this._zl(x.average_price)}` : ""}${value}</span>
+        </li>`;
+      }).join("");
+      const sum = (kind) => {
+        const list = sess.filter((x) => x.activity === kind);
+        const e = list.reduce((a, x) => a + x.energy_kwh, 0);
+        const priced = list.filter((x) => x.average_price !== null);
+        const pe = priced.reduce((a, x) => a + x.energy_kwh, 0);
+        const avg = pe ? priced.reduce((a, x) => a + x.energy_kwh * x.average_price, 0) / pe : null;
+        return [kwh(e), avg !== null ? this._zl(avg) : ""];
+      };
+      const [c, cp] = sum("charging"), [dch, dp] = sum("discharging");
+      return `<section class="tl hist">${head}
+        <svg viewBox="0 0 ${W} 108" role="img" aria-label="${esc(t.history)}">${ax}${bars}${line}</svg>
+        <div class="legend"><span style="--m:${V.bat}">${t.charged}</span><span style="--m:${V.pv}">${t.discharged}</span><span class="dash">${t === TEXTS.pl ? "cena RCE" : "RCE price"}</span></div>
+        <p class="hist-sum">${t.historySum(c, cp, dch, dp)}</p>
+        <ul class="hist-list">${rows}</ul>
+        <p class="hist-note">${t.historyNote}</p>
       </section>`;
     }
 
@@ -845,6 +926,20 @@
     .value-row.four .bal b { font-size: 22px; }
     .value .good { color: var(--c-good); } .value .bad { color: var(--c-bad); }
     .value p { margin: 0; font-size: 11px; color: var(--c-muted); line-height: 1.35; }
+    .hist .lbl { font-size: 8.5px; fill: var(--c-muted); font-family: var(--c-num); }
+    .hist svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .legend span.dash::before { height: 0; width: 12px; border-top: 1.5px dashed var(--c-muted); background: none; border-radius: 0; vertical-align: 3px; }
+    .hist-empty, .hist-note, .hist-sum { margin: 0; font-size: 12px; color: var(--c-muted); line-height: 1.4; }
+    .hist-sum { color: var(--c-text); font-size: 12.5px; }
+    .hist-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+    .hist-list li { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid var(--c-border); font-size: 12.5px; }
+    .hs-time { font-family: var(--c-num); color: var(--c-muted); font-size: 12px; white-space: nowrap; }
+    .hs-what { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; align-items: center; font-weight: 700; }
+    .hs-what i { width: 8px; height: 8px; border-radius: 50%; background: var(--m); grid-row: span 2; align-self: start; margin-top: 4px; }
+    .hs-what small { grid-column: 2; font-weight: 500; color: var(--c-muted); font-size: 11px; }
+    .hs-price { display: grid; justify-items: end; font-size: 11px; color: var(--c-muted); white-space: nowrap; }
+    .hs-price b { font-family: var(--c-num); font-size: 13px; color: var(--c-text); }
+    .hs-price b.good { color: var(--c-good); }
     .signals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .sig { min-width: 0; padding: 9px 10px; border-radius: var(--c-tr); background: var(--c-surface); border: 1px solid var(--c-border); display: grid; gap: 2px; }
     .sig small { font-size: 10.5px; color: var(--c-muted); line-height: 1.2; }
@@ -966,11 +1061,11 @@
         { name: "title", selector: { text: {} } },
         { name: "weather_entity", selector: { entity: { domain: "weather" } } },
         { name: "price_resolution", selector: { select: { options: [{ value: "auto", label: ed.auto }, { value: "hour", label: ed.hour }] } } },
-        { type: "grid", name: "", schema: ["show_weather", "show_status", "show_moment", "show_prices", "show_value", "show_signals", "load_fonts"].map((name) => ({ name, selector: { boolean: {} } })) },
+        { type: "grid", name: "", schema: ["show_weather", "show_status", "show_moment", "show_prices", "show_value", "show_history", "show_signals", "load_fonts"].map((name) => ({ name, selector: { boolean: {} } })) },
       ];
       this._form.data = {
         theme: "diorama", show_weather: true, price_resolution: "auto", show_status: true, show_moment: true,
-        show_prices: true, show_value: true, show_signals: true, load_fonts: false, ...this._config,
+        show_prices: true, show_value: true, show_history: true, show_signals: true, load_fonts: false, ...this._config,
       };
     }
   }

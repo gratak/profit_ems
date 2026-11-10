@@ -37,6 +37,45 @@ function demoSlots(values, dayOffset) {
   });
 }
 
+// Hour by hour what the battery did, following the plan, as the integration would record it.
+function demoBatteryHours(dayOffset, untilHour) {
+  const hours = [];
+  for (let h = 0; h < untilHour; h++) {
+    const mode = DEMO_PLAN.find((p) => +p.od.slice(0, 2) <= h && h < +p.do.slice(0, 2)).tryb;
+    let charge = 0, discharge = 0, imp = 0, exp = 0;
+    if (mode === "ladowanie_z_sieci") { charge = 3.1; imp = 3.5; }
+    else if (mode === "sprzedaz") { discharge = 3.6; exp = 2.4; }
+    else if (mode === "samokonsumpcja" && h >= 10 && h < 15) { charge = 1.4; }
+    else if (mode === "samokonsumpcja" || mode === "rezerwa") { discharge = h >= 21 || h < 1 ? 0.7 : 0; }
+    const start = new Date(demoDate("00:00", dayOffset).getTime() + h * 3600000);
+    hours.push({
+      start: start.toISOString(), end: new Date(start.getTime() + 3600000).toISOString(),
+      charge_kwh: charge, discharge_kwh: discharge, import_kwh: imp, export_kwh: exp,
+      price: (dayOffset ? DEMO_PRICES[(h + 3) % 24] : DEMO_PRICES[h]), mode, soc_start: null, soc_end: null,
+    });
+  }
+  let soc = 30;
+  for (const h of hours) { h.soc_start = soc; soc = Math.max(10, Math.min(100, soc + (h.charge_kwh - h.discharge_kwh) * 5)); h.soc_end = soc; }
+  return hours;
+}
+
+// The same grouping as the integration's history.sessions().
+function demoSessions(hours) {
+  const out = [];
+  for (const h of hours) {
+    const kind = Math.max(h.charge_kwh, h.discharge_kwh) < 0.05 ? "idle" : h.charge_kwh >= h.discharge_kwh ? "charging" : "discharging";
+    if (kind === "idle") continue;
+    const e = kind === "charging" ? h.charge_kwh : h.discharge_kwh, g = kind === "charging" ? h.import_kwh : h.export_kwh;
+    let x = out[out.length - 1];
+    if (!x || x.activity !== kind || x.mode !== h.mode || x.end !== h.start) {
+      x = { activity: kind, mode: h.mode, start: h.start, end: h.end, energy_kwh: 0, grid_kwh: 0, pe: 0, v: 0, soc_start: h.soc_start };
+      out.push(x);
+    }
+    x.end = h.end; x.energy_kwh += e; x.grid_kwh += g; x.soc_end = h.soc_end; x.pe += e; x.v += e * h.price;
+  }
+  return out.map(({ pe, v, ...x }) => ({ ...x, average_price: pe ? +(v / pe).toFixed(4) : null, value_pln: pe ? +(x.grid_kwh * v / pe).toFixed(2) : null }));
+}
+
 function demoHass(key, language = "pl") {
   const s = DEMO_SCENARIOS[key];
   const now = demoDate(s.time);
@@ -73,6 +112,9 @@ function demoHass(key, language = "pl") {
   add(P + "value_today", "value_today", profit[0], { from_panels: profit[1], from_system: profit[2], export_revenue: profit[3], data_coverage: 98, calculated_at: new Date(now.getTime() - 25 * 60000).toISOString() });
   add(P + "export_today", "grid_export_today", exportKwh);
   add(P + "import_today", "grid_import_today", importKwh);
+  const histHours = [...demoBatteryHours(-1, 24), ...demoBatteryHours(0, nowH)];
+  add(P + "battery_activity", "battery_activity", s.bat < -30 ? "charging" : s.bat > 30 ? "discharging" : "idle",
+    { hours: histHours, sessions: demoSessions(histHours) });
   add("binary_sensor.profitems_pe_26_0142_surplus", "pv_surplus_active", (s.nadW ?? 0) > 0 ? "on" : "off");
   add("binary_sensor.profitems_pe_26_0142_full", "battery_full", s.full ? "on" : "off");
   add("binary_sensor.profitems_pe_26_0142_cheapest", "cheapest_hour_now", nowH === minH ? "on" : "off");

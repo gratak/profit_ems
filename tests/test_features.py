@@ -417,3 +417,60 @@ async def test_prices_with_times_from_the_api_are_used(hass, aioclient_mock, fre
         "end": "2026-11-02T13:00:00+01:00",
         "price": 0.2,
     }
+
+
+# ---------------------------------------------------------------- battery history
+
+
+def test_sessions_group_hours_and_weigh_the_price():
+    from custom_components.profitems.history import sessions  # noqa: PLC0415
+
+    def hour(h, charge=0.0, discharge=0.0, imp=0.0, exp=0.0, price=0.5, mode="samokonsumpcja"):
+        return {
+            "start": f"2026-11-02T{h:02d}:00:00+01:00", "end": f"2026-11-02T{h + 1:02d}:00:00+01:00",
+            "charge_kwh": charge, "discharge_kwh": discharge, "import_kwh": imp, "export_kwh": exp,
+            "price": price, "mode": mode, "soc_start": 10 * h, "soc_end": 10 * h + 10,
+        }
+
+    result = sessions([
+        hour(1, charge=3.0, imp=3.2, price=0.3, mode="ladowanie_z_sieci"),
+        hour(2, charge=1.0, imp=1.1, price=0.5, mode="ladowanie_z_sieci"),
+        hour(3),  # idle
+        hour(18, discharge=2.0, exp=1.8, price=1.6, mode="sprzedaz"),
+    ])
+    assert [s["activity"] for s in result] == ["charging", "discharging"]
+    charge = result[0]
+    assert (charge["start"], charge["end"]) == ("2026-11-02T01:00:00+01:00", "2026-11-02T03:00:00+01:00")
+    assert charge["energy_kwh"] == 4.0
+    assert charge["average_price"] == round((3 * 0.3 + 1 * 0.5) / 4, 4)
+    assert charge["value_pln"] == round(4.3 * charge["average_price"], 2)
+    assert (charge["soc_start"], charge["soc_end"]) == (10, 30)
+    assert result[1]["mode"] == "sprzedaz"
+
+
+async def test_battery_history_follows_the_readings(hass, aioclient_mock, freezer):
+    freezer.move_to(READING + timedelta(seconds=30))
+    body = _body()
+    body["teraz"]["bateriaW"] = -3000
+    body["teraz"]["siecW"] = 3200
+    body["system"]["tryb"] = "ladowanie_z_sieci"
+    await _setup(hass, aioclient_mock, body)
+    assert _state(hass, "battery_activity").state == "charging"
+
+    later = READING + timedelta(minutes=5)
+    body = copy.deepcopy(body)
+    body["polaczenie"]["ostatniOdczyt"] = later.isoformat()
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(API_URL, json=body)
+    freezer.move_to(later + timedelta(seconds=30))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    attributes = _state(hass, "battery_activity").attributes
+    (hour,) = attributes["hours"]
+    assert hour["start"] == "2026-11-02T13:00:00+01:00"
+    assert hour["charge_kwh"] == 0.25  # 3 kW for 5 minutes
+    assert hour["price"] == 2.1941
+    (session,) = attributes["sessions"]
+    assert session["activity"] == "charging"
+    assert session["mode"] == "ladowanie_z_sieci"

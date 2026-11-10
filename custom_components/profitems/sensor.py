@@ -20,6 +20,7 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 from .coordinator import ProfitEmsConfigEntry
 from .energy import COUNTERS
+from .history import CHARGING, DISCHARGING, IDLE, sessions
 from .entity import ProfitEmsEntity, section
 from .prices import cheapest_slot, day_start, market_today, price_slots
 
@@ -106,6 +107,18 @@ def _value_attributes(data: Data) -> dict[str, Any]:
     }
 
 
+def _battery_activity(data: Data) -> str | None:
+    power = section(data, "teraz").get("bateriaW")
+    if isinstance(power, bool) or not isinstance(power, (int, float)):
+        return None
+    return CHARGING if power < -30 else DISCHARGING if power > 30 else IDLE
+
+
+def _history_attributes(coordinator: Any) -> dict[str, Any]:
+    hours = coordinator.history.hours
+    return {"hours": hours, "sessions": sessions(hours)}
+
+
 def _plan_today(coordinator: Any) -> dict[str, Any]:
     # The API sends the whole day's plan; the plan kept by the coordinator covers older API versions.
     return {"plan_today": coordinator.data.get("planDoby") or coordinator.plan_today}
@@ -154,6 +167,16 @@ SENSORS = (
         },
     ),
     *(_energy(key, field) for key, field in ENERGY_FIELDS.items()),
+    # What the battery does now; the attributes hold what it did in the last days, hour by hour.
+    ProfitEmsSensorDescription(
+        key="battery_activity",
+        translation_key="battery_activity",
+        device_class=SensorDeviceClass.ENUM,
+        options=[CHARGING, DISCHARGING, IDLE],
+        value_fn=_battery_activity,
+        attributes_fn=lambda data: {},
+        coordinator_attributes_fn=_history_attributes,
+    ),
     ProfitEmsSensorDescription(
         key="value_today",
         translation_key="value_today",
@@ -274,7 +297,18 @@ class ProfitEmsSensor(ProfitEmsEntity, SensorEntity):
     entity_description: ProfitEmsSensorDescription
     # Hourly prices and the plan change every day; keeping them out of the database saves space.
     _unrecorded_attributes = frozenset(
-        {"today", "tomorrow", "prices", "prices_today", "prices_tomorrow", "plan", "plan_today", "plan_tomorrow"}
+        {
+            "today",
+            "tomorrow",
+            "prices",
+            "prices_today",
+            "prices_tomorrow",
+            "plan",
+            "plan_today",
+            "plan_tomorrow",
+            "hours",
+            "sessions",
+        }
     )
 
     @property

@@ -22,6 +22,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .energy import EnergyCounters
+from .history import BatteryHistory
 from .prices import market_today
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,12 +63,14 @@ class ProfitEmsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.client = client
         self.energy = EnergyCounters(hass, config_entry.entry_id)
+        self.history = BatteryHistory(hass, config_entry.entry_id)
         # The API sends the plan for the rest of the day only; blocks that have passed are kept here.
         self.plan_today: list[dict[str, str]] = []
         self._plan_day: str | None = None
 
     async def _async_setup(self) -> None:
         await self.energy.async_load()
+        await self.history.async_load()
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -84,6 +87,7 @@ class ProfitEmsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         last_reading = dt_util.parse_datetime(reading) if reading else None
         self.update_interval = next_poll_delay(last_reading, now)
         self.energy.update(data)
+        self.history.update(data)
         self._merge_plan(data.get("plan"), now)
         self._track_offline(data, connection.get("stan"), last_reading, now)
         return data

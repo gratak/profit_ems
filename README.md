@@ -11,6 +11,7 @@ Integracja tylko odczytuje dane. Nie steruje falownikiem ani magazynem energii: 
 - **Karta do dashboardu** w czterech motywach (ProfitEMS, Diorama, Aurora, Foundation): przepływ energii, mapa cen RCE z planem pracy, bilans dnia i sygnały do automatyzacji. Motywy reagują na pogodę i porę dnia. Karta instaluje się razem z integracją.
 - **Liczniki energii w kWh** do panelu Energia: produkcja, zużycie, pobór i oddawanie, ładowanie i rozładowanie magazynu.
 - **Wartość energii wg RCE**: ile warta była energia oddana i pobrana, łącznie i dziś.
+- **Praca magazynu**: co magazyn robił w ostatnich dniach, godzina po godzinie: kiedy się ładował, kiedy oddawał energię, ile kWh i po jakiej średniej cenie RCE.
 - **Kalendarz z planem pracy**: każdy blok planu to wydarzenie, z blokami, które już minęły tego dnia.
 - **Usługa `profitems.cheapest_window`**: wskazuje najtańszy czas na pracę urządzenia.
 - **Ceny ze znacznikami czasu** w atrybucie `prices`, dla cen godzinowych i 15-minutowych, z poprawną obsługą zmiany czasu.
@@ -52,13 +53,15 @@ weather_entity: weather.dom
 | `weather_entity` | pierwsza encja `weather.*` | Pogoda pokazywana w motywie: chmury, deszcz, śnieg, mgła, burza |
 | `show_weather` | `true` | `false` wyłącza pogodę w motywie |
 | `price_resolution` | `auto` | `hour` uśrednia ceny 15-minutowe do godzin |
-| `show_status`, `show_moment`, `show_prices`, `show_value`, `show_signals` | `true` | Sekcje karty |
+| `show_status`, `show_moment`, `show_prices`, `show_value`, `show_history`, `show_signals` | `true` | Sekcje karty |
 | `load_fonts` | `false` | `true` pobiera czcionki motywu z Google Fonts. Domyślnie karta używa czcionek urządzenia i z niczym się nie łączy |
 | `language` | język Home Assistant | `pl` albo `en` |
 
 Pora dnia w motywie Diorama wynika z położenia słońca (`sun.sun`). Karta czyta tylko encje Home Assistant i nie wysyła zapytań do ProfitEMS.
 
 **Mapa cen i planu** pokazuje ceny RCE dziś i jutro, plan pracy systemu w kolorach trybów, bieżący moment i najtańszą godzinę. Najedź na słupek albo go dotknij, żeby zobaczyć cenę i tryb w tym okresie. Ceny 15-minutowe są rysowane jako cienkie słupki, z osią w godzinach.
+
+**Praca magazynu** pokazuje na wykresie, w których godzinach magazyn się ładował (słupki w górę), a w których oddawał energię (w dół), na tle ceny RCE. Pod spodem jest lista okresów, np. „01:00–05:00 Ładowanie z sieci, +12,4 kWh, śr. 0,32 zł/kWh, −4,48 zł”. Kwota to wartość energii pobranej z sieci albo do niej oddanej, po cenie RCE netto. Historię zbiera integracja z odczytów co 5 minut, od chwili instalacji, i przechowuje 7 dni.
 
 **Zysk dziś** karta bierze z ProfitEMS: to ta sama wartość co „Zysk dzisiaj” w aplikacji, z podziałem na zysk z paneli, z pracy systemu i ze sprzedaży, przeliczana co godzinę. Gdy ProfitEMS jej nie podaje (np. nieobsługiwana taryfa), karta pokazuje **bilans dnia wg RCE**, czyli szacunek: energia liczona z odczytów co 5 minut, wyceniona po cenie RCE netto z chwili odczytu, bez opłat dystrybucyjnych i podatków.
 
@@ -78,6 +81,7 @@ Pora dnia w motywie Diorama wynika z położenia słońca (`sun.sun`). Karta czy
 | Energia … (szacunek) | Liczniki kWh wyliczane przez integrację z mocy co 5 minut, tylko dla liczników, których falownik nie podaje |
 | Wartość energii oddanej (RCE), Wartość energii pobranej (RCE) | Narastająco w zł, wg ceny RCE; suma dzisiejsza w atrybucie `today` |
 | Najtańsza godzina dziś; Najtańsza godzina dziś, początek | Godzina 0–23 i ten sam moment jako znacznik czasu |
+| Magazyn teraz | Ładowanie, rozładowanie albo bez pracy; w atrybutach `hours` (godzina po godzinie z ostatnich 7 dni: energia, cena RCE, tryb, poziom naładowania) i `sessions` (okresy ładowania i rozładowania ze średnią ceną) |
 | Dostępna nadwyżka z paneli, Magazyn pełny, Trwa najtańsza godzina, Praca wyspowa | Tak lub nie |
 | Plan (kalendarz) | Bloki planu na dziś i jutro jako wydarzenia |
 | Połączenie, Ostatni odczyt, Sterowanie aktywne | Dane diagnostyczne |
